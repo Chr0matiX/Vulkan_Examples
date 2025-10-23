@@ -2,16 +2,16 @@
  * Vulkan entry points
  *
  * Platform specific macros for the example main entry points
- * 
+ *
  * Copyright (C) 2024-2025 by Sascha Willems - www.saschawillems.de
  *
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
 #if defined(_WIN32)
-/*
- * Windows
- */
+ /*
+  * Windows
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)						\
@@ -24,6 +24,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)				
 }																									\
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_  HINSTANCE hPrevInstance, _In_ LPSTR, _In_ int) \
 {																									\
+	OpenMessageBoxForDebug;																			\
 	for (int32_t i = 0; i < __argc; i++) { VulkanExample::args.push_back(__argv[i]); };  			\
 	vulkanExample = new VulkanExample();															\
 	vulkanExample->initVulkan();																	\
@@ -35,9 +36,9 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_  HINSTANCE hPrevInstance
 }
 
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-/*
- * Android
- */
+ /*
+  * Android
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 void android_main(android_app* state)																\
@@ -53,9 +54,9 @@ void android_main(android_app* state)																\
 }
 
 #elif defined(_DIRECT2DISPLAY)
-/*
- * Direct-to-display
- */
+ /*
+  * Direct-to-display
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent()                                											\
@@ -73,9 +74,9 @@ int main(const int argc, const char *argv[])													    \
 }
 
 #elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
-/*
- * Direct FB
- */
+ /*
+  * Direct FB
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent(const DFBWindowEvent *event)												\
@@ -116,9 +117,9 @@ int main(const int argc, const char *argv[])													    \
 }
 
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-/*
- * X11 Xcb
- */
+ /*
+  * X11 Xcb
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 static void handleEvent(const xcb_generic_event_t *event)											\
@@ -141,9 +142,9 @@ int main(const int argc, const char *argv[])													    \
 }
 
 #elif (defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
-/*
- * iOS and macOS (using MoltenVK)
- */
+ /*
+  * iOS and macOS (using MoltenVK)
+  */
 #if defined(VK_EXAMPLE_XCODE_GENERATED)
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
@@ -166,9 +167,9 @@ int main(const int argc, const char *argv[])														\
 #endif
 
 #elif defined(VK_USE_PLATFORM_SCREEN_QNX)
-/*
- * QNX Screen
- */
+ /*
+  * QNX Screen
+  */
 #define VULKAN_EXAMPLE_MAIN()																		\
 VulkanExample *vulkanExample;																		\
 int main(const int argc, const char *argv[])														\

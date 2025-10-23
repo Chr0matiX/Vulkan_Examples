@@ -23,6 +23,7 @@ extern CAMetalLayer* layer;
 
 std::vector<const char*> VulkanExampleBase::args;
 
+// ≥ı ºªØ instance ≈‰÷√
 VkResult VulkanExampleBase::createInstance()
 {
 	std::vector<const char*> instanceExtensions = { VK_KHR_SURFACE_EXTENSION_NAME };
