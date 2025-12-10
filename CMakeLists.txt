@@ -1,13 +1,18 @@
 # Copyright (C) 2016-2025 by Sascha Willems - www.saschawillems.de
 # This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 
+# 指定此项目 cmake 最低版本，FATAL_ERROR：不满足要求立即失败并报错
 cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
+# 寻找 Module，这里是引入寻找脚本，脚本指向 .h .lib 等资源
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
+# 定义变量名
 set(NAME vulkanExamples)
 
+# 初始化 cmake 项目，设置名称
 project(${NAME})
 
+# 将目录追加到编译器的头文件搜索路径里
 include_directories(external)
 include_directories(external/glm)
 include_directories(external/gli)
@@ -17,6 +22,7 @@ include_directories(external/ktx/include)
 include_directories(external/ktx/other_include)
 include_directories(base)
 
+# bool 选项，可在 cmake 编译指令中，通过附加 -USE_D2D_WSI=on 这种形式来启用，此选项控制后续的编译行为
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 OPTION(USE_DIRECTFB_WSI "Build the project using DirectFB swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
@@ -24,6 +30,8 @@ OPTION(USE_HEADLESS "Build the project using headless extension swapchain" OFF)
 OPTION(USE_RELATIVE_ASSET_PATH "Load assets (shaders, models, textures) from a fixed path relative to the binar" OFF)
 OPTION(FORCE_VALIDATION "Forces validation on for all samples at compile time (prefer using the -v / --validation command line arguments)" OFF)
 
+# CACHE：定义一个缓存变量，PATH：类型为路径，目前为空，最后是提示，可在 cmake 编译命令中
+# 通过附加 -DRESOURCE_INSTALL_DIR=/opt/myapp/share . 等命令，控制编译行为
 set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
 message(STATUS "Using module to find Vulkan")
