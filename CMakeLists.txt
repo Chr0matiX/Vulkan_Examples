@@ -35,6 +35,8 @@ OPTION(FORCE_VALIDATION "Forces validation on for all samples at compile time (p
 set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
 message(STATUS "Using module to find Vulkan")
+
+# 查找 Vulkan 资源，路径优先查找上面导入的 Module
 find_package(Vulkan)
 
 IF(UNIX AND NOT APPLE)
@@ -42,13 +44,16 @@ IF(UNIX AND NOT APPLE)
 ENDIF()
 
 IF(WIN32)
+	# 若之前 find_package(Vulkan) 并未找到资源
 	IF (NOT Vulkan_FOUND)
+		# 去指定目录下寻找资源
 		find_library(Vulkan_LIBRARY NAMES vulkan-1 vulkan PATHS ${CMAKE_SOURCE_DIR}/libs/vulkan)
 		IF (Vulkan_LIBRARY)
 			set(Vulkan_FOUND ON)
 			MESSAGE("Using bundled Vulkan library version")
 		ENDIF()
 	ENDIF()
+	# 追加一个编译选项
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WIN32_KHR")
 ELSEIF(LINUX)
 	IF (NOT Vulkan_FOUND)
@@ -58,6 +63,7 @@ ELSEIF(LINUX)
 			MESSAGE("Using bundled Vulkan library version")
 		ENDIF()
 	ENDIF()
+	# 处理 linux 下 surface 创建所需支持
 	find_package(Threads REQUIRED)
 	IF(USE_D2D_WSI)
 		MESSAGE("Using direct to display extension...")
@@ -67,14 +73,17 @@ ELSEIF(LINUX)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_DIRECTFB_EXT")
 		include_directories(${DIRECTFB_INCLUDE_DIR})
 	ELSEIF(USE_WAYLAND_WSI)
+		# 寻找系统是否存在组件
 		find_program(PKG_CONFIG pkg-config)
 		if (NOT PKG_CONFIG)
 			message(FATAL_ERROR "pkg-config binary not found")
 		endif ()
+		# 寻找是否有目标包
 		find_package(Wayland REQUIRED)
 		if (NOT WAYLAND_FOUND)
 			message(FATAL_ERROR "Wayland development package not found")
 		endif ()
+		# 验证组件
 		pkg_check_modules(WAYLAND_PROTOCOLS REQUIRED wayland-protocols)
 		if (NOT WAYLAND_PROTOCOLS_FOUND)
 			message(FATAL_ERROR "Wayland protocols package not found")
@@ -86,14 +95,18 @@ ELSEIF(LINUX)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_WAYLAND_KHR")
 		include_directories(${WAYLAND_INCLUDE_DIR})
 		pkg_get_variable(protocol_dir wayland-protocols pkgdatadir)
+		# 生成 .h 文件和 .cpp 文件，供编译时直接引用
 		execute_process(COMMAND ${WAYLAND_SCANNER} client-header ${protocol_dir}/stable/xdg-shell/xdg-shell.xml ${CMAKE_BINARY_DIR}/xdg-shell-client-protocol.h
 				COMMAND ${WAYLAND_SCANNER} private-code ${protocol_dir}/stable/xdg-shell/xdg-shell.xml ${CMAKE_BINARY_DIR}/xdg-shell-protocol.c)
 		include_directories(${CMAKE_BINARY_DIR})
+	# 离屏渲染
 	ELSEIF(USE_HEADLESS)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_HEADLESS_EXT")
+	# 上面的都没开，使用兼容性最好的 X11（通过 XCB）
 	ELSE(USE_D2D_WSI)
 		find_package(XCB REQUIRED)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_XCB_KHR")
+	# 此处 ENDIF 后面括号的内容仅为标记，无实际作用
 	ENDIF(USE_D2D_WSI)
 ELSEIF(APPLE)
 	IF (CMAKE_GENERATOR MATCHES "Xcode")
@@ -140,13 +153,17 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch-enum")
 endif()
 
-
+# 关掉微软对旧函数的安全警告， CRT 函数（strcpy、fopen、sprintf…）
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+# CPP 标准
 set(CMAKE_CXX_STANDARD 20)
+# 将 CPP 标准，设置为强制要求，不满足则推出编译
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 将目标路径下所有的 *.cpp 文件都放到变量 SOURCE 中，GLOB 表示使用“通配符展开”
 file(GLOB SOURCE *.cpp )
 
+# 运行时去哪里找资源
 # Asset and shader path selection
 if(RESOURCE_INSTALL_DIR)
 	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${RESOURCE_INSTALL_DIR}/\")
@@ -167,8 +184,11 @@ endif()
 
 # Compiler specific stuff
 IF(MSVC)
+	# 只启用同步异常处理，可减小代码生成体积
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 ELSEIF(APPLE)
+	# -fobjc-arc：让 OC 对象也走自动引用计数
+	# -ObjC++ 或 -xobjective-c++：把所有源文件当成 Objective-C++ 语法编译，避免 .mm 后缀改名麻烦
 	IF(CMAKE_GENERATOR MATCHES "Makefiles" OR CMAKE_GENERATOR MATCHES "Ninja")
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fobjc-arc -ObjC++")
 	ELSE() # SRS - use objective-c++ language flag vs. ObjC++ for Xcode builds
@@ -181,10 +201,11 @@ IF(WIN32)
 ELSEIF(APPLE)
 	link_libraries(${Vulkan_LIBRARY} "-framework AppKit" "-framework QuartzCore")
 ELSE(WIN32)
-	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY} ${Vulkan_LIBRARY} ${DIRECTFB_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+	link_libraries(${XCB_LIBRARIES} ${Vulkan_LIBRARY} ${DIRECTFB_LIBRARIES} ${WAYLAND_CLIENT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 ENDIF(WIN32)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
+# 引入子项目，顺序有要求，先引入 base，再引入 例子子项目
 add_subdirectory(base)
 add_subdirectory(examples)
