@@ -78,8 +78,8 @@ constexpr uint32_t maxConcurrentFrames{ 2 };
 #define OpenMessageBoxForDebug				\
 	MessageBoxA(							\
 		nullptr,							\
-		"ÏÈ¸½¼Óµ÷ÊÔÆ÷£¬È»ºóµã¡°È·¶¨¡±¼ÌĞø",		\
-		"µÈ´ıµ÷ÊÔÆ÷",							\
+		"å…ˆé™„åŠ è°ƒè¯•å™¨ï¼Œç„¶åç‚¹â€œç¡®å®šâ€ç»§ç»­",		\
+		"ç­‰å¾…è°ƒè¯•å™¨",							\
 		MB_OK | MB_ICONINFORMATION			\
 	);
 
