@@ -110,49 +110,65 @@ protected:
 	uint32_t lastFPS = 0;
 	std::chrono::time_point<std::chrono::high_resolution_clock> lastTimestamp, tPrevEnd;
 	// Vulkan instance, stores all per-application states
+	// Vulkan instance，保存所有与应用程序相关的全局状态，“per-”在此表示有且仅有的意思
 	VkInstance instance{ VK_NULL_HANDLE };
+	// 实例扩展，全局配置，与 实例 绑定
 	std::vector<std::string> supportedInstanceExtensions;
 	// Physical device (GPU) that Vulkan will use
 	VkPhysicalDevice physicalDevice{ VK_NULL_HANDLE };
 	// Stores physical device properties (for e.g. checking device limits)
+	// 属性
 	VkPhysicalDeviceProperties deviceProperties{};
 	// Stores the features available on the selected physical device (for e.g. checking if a feature is available)
+	// 特性
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	// Stores all available memory (type) properties for the physical device
+	// 内存堆（heap）和 内存类型（type）
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties{};
 	/** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
 	VkPhysicalDeviceFeatures enabledFeatures{};
 	/** @brief Set of device extensions to be enabled for this example (must be set in the derived constructor) */
+	// 设备扩展，针对与某一个设备的配置，与 设备 绑定
 	std::vector<const char*> enabledDeviceExtensions;
 	/** @brief Set of instance extensions to be enabled for this example (must be set in the derived constructor) */
 	std::vector<const char*> enabledInstanceExtensions;
 	/** @brief Set of layer settings to be enabled for this example (must be set in the derived constructor) */
+	// 对于开启的层的配置信息
 	std::vector<VkLayerSettingEXT> enabledLayerSettings;
 	/** @brief Optional pNext structure for passing extension structures to device creation */
+	// pNext Chain 机制，供派生类修改
 	void* deviceCreatepNextChain = nullptr;
 	/** @brief Logical device, application's view of the physical device (GPU) */
 	VkDevice device{ VK_NULL_HANDLE };
 	// Handle to the device graphics queue that command buffers are submitted to
 	VkQueue queue{ VK_NULL_HANDLE };
 	// Depth buffer format (selected during Vulkan initialization)
+	// 深度缓冲区格式
 	VkFormat depthFormat{ VK_FORMAT_UNDEFINED };
 	// Command buffer pool
 	VkCommandPool cmdPool{ VK_NULL_HANDLE };
 	// Command buffers used for rendering
+	// 缓冲区，maxConcurrentFrames 限定了缓冲区大小（2缓冲，3缓冲）
 	std::array<VkCommandBuffer, maxConcurrentFrames> drawCmdBuffers;
 	// Global render pass for frame buffer writes
+	// 渲染通道对象
 	VkRenderPass renderPass{ VK_NULL_HANDLE };
 	// List of available frame buffers (same as number of swap chain images)
 	std::vector<VkFramebuffer>frameBuffers;
 	// Descriptor set pool
+	// 描述符池
 	VkDescriptorPool descriptorPool{ VK_NULL_HANDLE };
 	// List of shader modules created (stored for cleanup)
+	// 目前这里只是为了一并释放，但是这里可以用相关机制做缓存
 	std::vector<VkShaderModule> shaderModules;
 	// Pipeline cache object
+	// 主要缓存硬件相关的渲染管线编译结果
 	VkPipelineCache pipelineCache{ VK_NULL_HANDLE };
 	// Wraps the swap chain to present images (framebuffers) to the windowing system
+	// 交换链
 	VulkanSwapChain swapChain;
 
+	// 同步机制，通过信号量实现
 	// Synchronization related objects and variables
 	// These are used to have multiple frame buffers "in flight" to get some CPU/GPU parallelism
 	uint32_t currentImageIndex{ 0 };
@@ -161,6 +177,7 @@ protected:
 	std::vector<VkSemaphore> renderCompleteSemaphores{};
 	std::array<VkFence, maxConcurrentFrames> waitFences;
 
+	// 是否需要模板缓冲
 	bool requiresStencil{ false };
 public:
 	bool prepared = false;
@@ -398,4 +415,9 @@ public:
 #endif
 };
 
+// 平台相关的 main 函数生成头
+// 在末尾处包含：
+// 1. Entrypoints.h 文件中的内容需要实例化 VulkanExample，必须要知道详细细节，也就是完整定义
+// 2. 分文件编写，不用写在一团
+// 3. Entrypoints.h 与本文件强相关，所以直接在此处 include
 #include "Entrypoints.h"
