@@ -8,6 +8,9 @@
  * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
  */
 
+// 宏定义是没有语法检测的，所以这里可以直接写 VulkanExample												   
+// 同时也意味着，调用宏的地方必须要先定义 VulkanExample，才能正常编译
+
 #if defined(_WIN32)
  /*
   * Windows
