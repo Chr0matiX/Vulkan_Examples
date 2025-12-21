@@ -240,6 +240,6 @@ android/.idea/**
 
 libs/vulkan/*.so
 
-.vscode/*
+#.vscode/*
 
 __pycache__**
