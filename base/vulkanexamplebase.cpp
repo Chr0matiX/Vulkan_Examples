@@ -1034,10 +1034,12 @@ bool VulkanExampleBase::initVulkan()
 
 	// Select physical device to be used for the Vulkan example
 	// Defaults to the first device unless specified by command line
+	// 默认选择的 GPU 索引
 	uint32_t selectedDevice = 0;
 
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR)
 	// GPU selection via command line argument
+	// 根据命令行中的选项，选择目标 GPU
 	if (commandLineParser.isSet("gpuselection")) {
 		uint32_t index = commandLineParser.getValueAsInt("gpuselection", 0);
 		if (index > gpuCount - 1) {
@@ -1046,6 +1048,7 @@ bool VulkanExampleBase::initVulkan()
 			selectedDevice = index;
 		}
 	}
+	// 根据命令行中的选项，打印 GPU 信息
 	if (commandLineParser.isSet("gpulist")) {
 		std::cout << "Available Vulkan devices" << "\n";
 		for (uint32_t i = 0; i < gpuCount; i++) {
@@ -1061,6 +1064,7 @@ bool VulkanExampleBase::initVulkan()
 	physicalDevice = physicalDevices[selectedDevice];
 
 	// Store properties (including limits), features and memory properties of the physical device (so that examples can check against them)
+	// 获取物理设备的属性、特性、内存属性
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &deviceMemoryProperties);
@@ -1076,6 +1080,7 @@ bool VulkanExampleBase::initVulkan()
 	// Derived examples can enable extensions based on the list of supported extensions read from the physical device
 	getEnabledExtensions();
 
+	// 此处才是通过可选的 特性 和 设备扩展，来创建具体的 逻辑设备
 	result = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, deviceCreatepNextChain);
 	if (result != VK_SUCCESS) {
 		vks::tools::exitFatal("Could not create Vulkan device: \n" + vks::tools::errorString(result), result);
@@ -1087,6 +1092,7 @@ bool VulkanExampleBase::initVulkan()
 	vkGetDeviceQueue(device, vulkanDevice->queueFamilyIndices.graphics, 0, &queue);
 
 	// Find a suitable depth and/or stencil format
+	// 这里使用 VkBool32 是为了内存对齐，保证 CPU 的 高速读取
 	VkBool32 validFormat{ false };
 	// Samples that make use of stencil will require a depth + stencil format, so we select from a different list
 	if (requiresStencil) {
@@ -1175,6 +1181,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
+	// 处理全屏情况下的分辨率
 	if (settings.fullscreen)
 	{
 		if ((width != (uint32_t)screenWidth) && (height != (uint32_t)screenHeight))
@@ -1206,6 +1213,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	DWORD dwExStyle;
 	DWORD dwStyle;
 
+	// 设置窗口样式和行为，状态栏之类的
 	if (settings.fullscreen)
 	{
 		dwExStyle = WS_EX_APPWINDOW;
@@ -1217,16 +1225,20 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 
+	// 设置画布大小
 	RECT windowRect{
 		.left = 0L,
 		.top = 0L,
 		.right = settings.fullscreen ? (long)screenWidth : (long)width,
 		.bottom = settings.fullscreen ? (long)screenHeight : (long)height
 	};
+	// 主要用处就是通过配置，反推用户区（画布）的大小
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
 	std::string windowTitle = getWindowTitle();
-	window = CreateWindowEx(0,
+	window = CreateWindowEx(
+		//0, // 此处并没有使用 dwExStyle，不知是否为 bug
+		dwExStyle,
 		name.c_str(),
 		windowTitle.c_str(),
 		dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
@@ -1242,6 +1254,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	if (!window)
 	{
 		std::cerr << "Could not create window!\n";
+		// 这句话会将输出缓冲区的内容强制立即写入到物理终端（屏幕）
 		fflush(stdout);
 		return nullptr;
 	}
@@ -1255,7 +1268,9 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 	}
 
 	ShowWindow(window, SW_SHOW);
+	// 将创建窗口的线程带到前台并激活窗口
 	SetForegroundWindow(window);
+	// 设置当前窗口为焦点
 	SetFocus(window);
 
 	return window;

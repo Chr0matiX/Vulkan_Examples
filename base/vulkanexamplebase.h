@@ -123,7 +123,7 @@ protected:
 	// 特性
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	// Stores all available memory (type) properties for the physical device
-	// 内存堆（heap）和 内存类型（type）
+	// 内存堆（heap）和 内存类型（type），相当于内存地图，有索引和各种属性，用来给外部获取想要的内存
 	VkPhysicalDeviceMemoryProperties deviceMemoryProperties{};
 	/** @brief Set of physical device features to be enabled for this example (must be set in the derived constructor) */
 	VkPhysicalDeviceFeatures enabledFeatures{};
@@ -141,9 +141,13 @@ protected:
 	/** @brief Logical device, application's view of the physical device (GPU) */
 	VkDevice device{ VK_NULL_HANDLE };
 	// Handle to the device graphics queue that command buffers are submitted to
+	// 可以看作是 GPU 的任务队列
 	VkQueue queue{ VK_NULL_HANDLE };
 	// Depth buffer format (selected during Vulkan initialization)
 	// 深度缓冲区格式
+	// 部分情况也存在模板缓冲
+	// 深度缓冲：计算遮挡，像素点到摄影机的距离
+	// 模板缓冲：渲染视口的位置，比如仅有一个圆形内会渲染，其余部分丢弃
 	VkFormat depthFormat{ VK_FORMAT_UNDEFINED };
 	// Command buffer pool
 	VkCommandPool cmdPool{ VK_NULL_HANDLE };
