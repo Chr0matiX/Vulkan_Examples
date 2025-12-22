@@ -1143,21 +1143,27 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 {
 	this->windowInstance = hinstance;
 
+	// 以 lpszClassName 来定义一种窗体行为，实际为一种行为模板
 	WNDCLASSEX wndClass{
 		.cbSize = sizeof(WNDCLASSEX),
+		// 水平或垂直尺寸发生变化时，强制重绘整个窗口
 		.style = CS_HREDRAW | CS_VREDRAW,
+		// lpfnWndProc：一个函数指针，指定窗口过程函数，键盘/鼠标输入、窗口大小变更都会发送给这个函数
 		.lpfnWndProc = wndproc,
 		.cbClsExtra = 0,
 		.cbWndExtra = 0,
+		// 当前应用程序实例的句柄
 		.hInstance = hinstance,
 		.hIcon = LoadIcon(NULL, IDI_APPLICATION),
 		.hCursor = LoadCursor(NULL, IDC_ARROW),
+		// 指定背景画刷为黑色，避免窗口在部分刷新场景下的闪烁
 		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
 		.lpszMenuName = NULL,
 		.lpszClassName = name.c_str(),
 		.hIconSm = LoadIcon(NULL, IDI_WINLOGO),
 	};
 
+	// 注册到 内核
 	if (!RegisterClassEx(&wndClass))
 	{
 		std::cout << "Could not register window class!\n";
@@ -1165,6 +1171,7 @@ HWND VulkanExampleBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
 		exit(1);
 	}
 
+	// 屏幕宽高像素
 	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
