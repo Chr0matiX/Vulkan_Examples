@@ -230,6 +230,7 @@ void VulkanExampleBase::createPipelineCache()
 
 void VulkanExampleBase::prepare()
 {
+	// 创建一个 surface，然后查询 队列族 是否支持，最后设定格式
 	createSurface();
 	createCommandPool();
 	createSwapChain();
@@ -1009,6 +1010,7 @@ bool VulkanExampleBase::initVulkan()
 #endif
 
 	// If requested, we enable the default validation layers for debugging
+	// 启用验证层
 	if (settings.validation)
 	{
 		vks::debug::setupDebugging(instance);
@@ -1017,6 +1019,7 @@ bool VulkanExampleBase::initVulkan()
 	// Physical device
 	uint32_t gpuCount = 0;
 	// Get number of available physical devices
+	// VK_CHECK_RESULT：本项目中的一个 Vulkan 返回值检测宏
 	VK_CHECK_RESULT(vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr));
 	if (gpuCount == 0) {
 		vks::tools::exitFatal("No device with Vulkan support found", -1);
@@ -3215,6 +3218,8 @@ void VulkanExampleBase::windowResized() {}
 void VulkanExampleBase::createSurface()
 {
 #if defined(_WIN32)
+	// windowInstance：当前应用程序的实例句柄
+	// window：窗口的句柄
 	swapChain.initSurface(windowInstance, window);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	swapChain.initSurface(androidApp->window);
