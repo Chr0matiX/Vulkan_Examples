@@ -201,6 +201,8 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	assert(instance);
 
 	// Store the current swap chain handle so we can use it later on to ease up recreation
+	// 保存一个旧的交换链，避免闪烁或崩溃
+	// 一定程度上利用旧交换链中未释放的资源
 	VkSwapchainKHR oldSwapchain = swapChain;
 
 	// Get physical device surface properties and formats
@@ -312,6 +314,7 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain));
 
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
+	// 最后再尝试对旧交换链的资源进行回收
 	if (oldSwapchain != VK_NULL_HANDLE) { 
 		for (auto i = 0; i < images.size(); i++) {
 			vkDestroyImageView(device, imageViews[i], nullptr);
