@@ -206,6 +206,7 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	VkSwapchainKHR oldSwapchain = swapChain;
 
 	// Get physical device surface properties and formats
+	// 查询 OS/WSI 的能力范围
 	VkSurfaceCapabilitiesKHR surfaceCaps;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCaps));
 
