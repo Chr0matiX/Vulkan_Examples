@@ -214,17 +214,19 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	// If width (and height) equals the special value 0xFFFFFFFF, the size of the surface will be set by the swapchain
 	if (surfaceCaps.currentExtent.width == (uint32_t)-1) {
 		// If the surface size is undefined, the size is set to the size of the images requested
+		// 部分窗口系统返回的值，宽高可能是未定义的，这时候就直接使用传进来的数据即可
 		swapchainExtent.width = width;
 		swapchainExtent.height = height;
 	} else {
 		// If the surface size is defined, the swap chain size must match
+		// 绝大多数的情况可以直接使用当前用户设定的大小
 		swapchainExtent = surfaceCaps.currentExtent;
 		width = surfaceCaps.currentExtent.width;
 		height = surfaceCaps.currentExtent.height;
 	}
 
-
 	// Select a present mode for the swapchain
+	// 获取当前的呈现模式
 	uint32_t presentModeCount;
 	VK_CHECK_RESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr));
 	assert(presentModeCount > 0);
@@ -234,6 +236,7 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 
 	// The VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 	// This mode waits for the vertical blank ("v-sync")
+	// 默认方案，垂直同步
 	VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
 	// If v-sync is not requested, try to find a mailbox mode
@@ -242,11 +245,14 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	{
 		for (size_t i = 0; i < presentModeCount; i++)
 		{
+			// Mailbox：不撕裂，低延迟
 			if (presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 			{
 				swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+				// 若找到，则直接使用 Mailbox
 				break;
 			}
+			// Immediate：可能存在撕裂，低延迟
 			if (presentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR)
 			{
 				swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -255,12 +261,14 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	}
 
 	// Determine the number of images
+	// 选择缓冲个数
 	uint32_t desiredNumberOfSwapchainImages = surfaceCaps.minImageCount + 1;
 	if ((surfaceCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfaceCaps.maxImageCount)) {
 		desiredNumberOfSwapchainImages = surfaceCaps.maxImageCount;
 	}
 
 	// Find the transformation of the surface
+	// Identity：同一性
 	VkSurfaceTransformFlagsKHR preTransform;
 	if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
 		// We prefer a non-rotated transform
@@ -270,13 +278,14 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 	}
 
 	// Find a supported composite alpha format (not all devices support alpha opaque)
+	// 处理混合方式
 	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	// Simply select the first composite alpha format available
 	std::vector<VkCompositeAlphaFlagBitsKHR> compositeAlphaFlags = {
-		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
-		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,				// 不透明
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,		// 预乘 Alpha
+		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,		// 普通 Alpha
+		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,				// 继承
 	};
 	for (auto& compositeAlphaFlag : compositeAlphaFlags) {
 		if (surfaceCaps.supportedCompositeAlpha & compositeAlphaFlag) {
@@ -302,24 +311,32 @@ void VulkanSwapChain::create(uint32_t& width, uint32_t& height, bool vsync, bool
 		// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
 		.clipped = VK_TRUE,
 		// Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
+		// 旧交换链只做 信息参考，在创建完成的一刻，已经没有作用了，所以，下面释放不会有任何问题
 		.oldSwapchain = oldSwapchain,
 	};
+	// 可以看作开启复制粘贴
 	// Enable transfer source on swap chain images if supported
+	// 可以作为传输源，可通过 vkCmdCopyImage 复制
 	if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	}
 	// Enable transfer destination on swap chain images if supported
+	// 可以作为传输目的，可以向内直接写入一张渲染好的位图
 	if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
+	// pAllocator 是一个分配器
 	VK_CHECK_RESULT(vkCreateSwapchainKHR(device, &swapchainCI, nullptr, &swapChain));
 
 	// If an existing swap chain is re-created, destroy the old swap chain and the ressources owned by the application (image views, images are owned by the swap chain)
 	// 最后再尝试对旧交换链的资源进行回收
 	if (oldSwapchain != VK_NULL_HANDLE) { 
 		for (auto i = 0; i < images.size(); i++) {
+			// 需要手动释放 VkImageView
 			vkDestroyImageView(device, imageViews[i], nullptr);
 		}
+		// VkImage 则由管理的 Swapchain 释放
+		// 此处还有延迟释放的规则，若其中的资源处于被使用的状态，那么会在使用完毕之后释放
 		vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
 	}
 	// Get the (new) swap chain images
