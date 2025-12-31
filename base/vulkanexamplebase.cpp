@@ -84,7 +84,7 @@ VkResult VulkanExampleBase::createInstance()
 		for (const char * enabledExtension : enabledInstanceExtensions)
 		{
 			// Output message if requested extension is not available
-			// Waring 这里比对地址是认真的吗？
+			// 这个 find 内实际上会发生[运算符重载][函数重载决议]，会使用 std::string 与 char* 的逐字符比较
 			if (std::find(supportedInstanceExtensions.begin(), supportedInstanceExtensions.end(), enabledExtension) == supportedInstanceExtensions.end())
 			{
 				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
