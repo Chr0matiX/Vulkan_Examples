@@ -2961,6 +2961,7 @@ void VulkanExampleBase::keyPressed(uint32_t) {}
 
 void VulkanExampleBase::mouseMoved(double x, double y, bool & handled) {}
 
+// 创建同步机制，细节还需要后续研究
 void VulkanExampleBase::createSynchronizationPrimitives()
 {
 	// Wait fences to sync command buffer access
@@ -3057,6 +3058,7 @@ void VulkanExampleBase::setupFrameBuffer()
 
 void VulkanExampleBase::setupRenderPass()
 {
+	// 定义不同的缓存规格，和操作定义
 	std::array<VkAttachmentDescription, 2> attachments{
 		// Color attachment
 		VkAttachmentDescription{
@@ -3082,6 +3084,7 @@ void VulkanExampleBase::setupRenderPass()
 		}
 	};
 
+	// 定义数组引用，attachment 表示下标
 	VkAttachmentReference colorReference{ .attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 	VkAttachmentReference depthReference{ .attachment = 1, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
