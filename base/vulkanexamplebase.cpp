@@ -314,6 +314,7 @@ void VulkanExampleBase::renderLoop()
 {
 // SRS - for non-apple plaforms, handle benchmarking here within VulkanExampleBase::renderLoop()
 //     - for macOS, handle benchmarking within NSApp rendering loop via displayLinkOutputCb()
+// 基准测试
 #if !(defined(VK_USE_PLATFORM_IOS_MVK) || defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT))
 	if (benchmark.active) {
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -349,6 +350,8 @@ void VulkanExampleBase::renderLoop()
 	MSG msg;
 	bool quitMessageReceived = false;
 	while (!quitMessageReceived) {
+		// PeekMessage：非阻塞式，若无消息，会直接返回 false
+		// GetMessage：阻塞式
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -357,6 +360,8 @@ void VulkanExampleBase::renderLoop()
 				break;
 			}
 		}
+		// prepared：表示所有的准备工作都做好了
+		// IsIconic：判断当前窗口是否被最小化了
 		if (prepared && !IsIconic(window)) {
 			nextFrame();
 		}
@@ -3042,6 +3047,7 @@ void VulkanExampleBase::setupFrameBuffer()
 	// Create frame buffers for every swap chain image, only one depth/stencil attachment is required, as this is owned by the application
 	frameBuffers.resize(swapChain.images.size());
 	for (uint32_t i = 0; i < frameBuffers.size(); i++) {
+		// Color 和 depthStencil，对应之前定义的两个 attachments
 		const VkImageView attachments[2] = { swapChain.imageViews[i], depthStencil.view };
 		VkFramebufferCreateInfo frameBufferCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
