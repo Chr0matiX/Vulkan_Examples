@@ -161,8 +161,11 @@ public:
 	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkMemoryPropertyFlags properties)
 	{
 		// Iterate over all memory types available for the device used in this example
+		// deviceMemoryProperties：配置总表
+		// typeBits：掩码，硬件支持表
 		for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++)
 		{
+			// 比对掩码最后一位，硬件是否支持
 			if ((typeBits & 1) == 1)
 			{
 				if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -170,6 +173,7 @@ public:
 					return i;
 				}
 			}
+			// 循环调整最后一位
 			typeBits >>= 1;
 		}
 
@@ -180,6 +184,7 @@ public:
 	void createSynchronizationPrimitives()
 	{
 		// Fences are used to check draw command buffer completion on the host
+		// CPU 处的帧缓冲
 		for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++) {		
 			VkFenceCreateInfo fenceCI{};
 			fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -197,6 +202,7 @@ public:
 		}
 		// Render completion
 		// Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
+		// 渲染同步与实际的 VkImage 数量挂钩
 		renderCompleteSemaphores.resize(swapChain.images.size());
 		for (auto& semaphore : renderCompleteSemaphores) {
 			VkSemaphoreCreateInfo semaphoreCI{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
