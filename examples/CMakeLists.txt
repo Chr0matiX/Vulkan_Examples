@@ -87,8 +87,8 @@ function(buildExample EXAMPLE_NAME)
 			set_target_properties(${EXAMPLE_NAME} PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 			# 指定头文件搜索路径
 			# PUBLIC：当前项目使用，其他项目链接当前项目时也会使用
-			# PRIVATE：当前项目使用，其他项目 ~ 不会使用
-			# INTERFACE：当前项目不使用，其他项目 ~ 使用，常见于“纯头文件”库
+			# PRIVATE：当前项目使用，~ 不会使用
+			# INTERFACE：当前项目不使用，~ 使用，常见于“纯头文件”库
 			target_include_directories(${EXAMPLE_NAME} PRIVATE ${OpenMP_CXX_INCLUDE_DIRS})
 			target_link_libraries(${EXAMPLE_NAME} ${OpenMP_CXX_LIBRARIES})
 		endif()
