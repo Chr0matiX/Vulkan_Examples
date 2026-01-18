@@ -4,26 +4,25 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-#include <string>
 
-CVkMana * CVkMana::m_VkManaInst = nullptr;
+CVkManager * CVkManager::m_VkManagerInstance = nullptr;
 
-CVkMana & CVkMana::getInst() {
-	if (m_VkManaInst == nullptr) {
-		m_VkManaInst = new CVkMana();
-		m_VkManaInst->initMana();
+CVkManager & CVkManager::getInstance() {
+	if (m_VkManagerInstance == nullptr) {
+		m_VkManagerInstance = new CVkManager();
+		m_VkManagerInstance->initManager();
 	}
 
-	return *m_VkManaInst;
+	return *m_VkManagerInstance;
 }
 
-bool CVkMana::initMana() {
+bool CVkManager::initManager() {
 	bool rtn = false;
 
 	do {
 		// Create VkInstace
 		{
-			VkInstanceCreateInfo instCI{
+			VkInstanceCreateInfo instanceCI{
 				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
 			///
@@ -32,25 +31,26 @@ bool CVkMana::initMana() {
 									  .pApplicationName = m_AppName,
 									  .pEngineName = m_Engine,
 									  .apiVersion = m_ApiVersion};
-			instCI.pApplicationInfo = &appInfo;
+			instanceCI.pApplicationInfo = &appInfo;
 
 			///
-			std::vector<const char *> vec_EnableInstExte;
+			std::vector<const char *> vec_EnableInstExtension;
 			{
-				uint32_t exteCount = 0;
-				vkEnumerateInstanceExtensionProperties(nullptr, &exteCount,
+				uint32_t extensionCount = 0;
+				vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
 													   nullptr);
-				if (exteCount <= 0) {
-					std::cerr << "exteCount is zero!\n";
+				if (extensionCount <= 0) {
+					std::cerr << "extensionCount is zero!\n";
 					break;
 				}
 
-				vec_EnableInstExte.reserve(exteCount);
+				vec_EnableInstExtension.reserve(extensionCount);
 
-				std::vector<VkExtensionProperties> vec_ExteProp{exteCount};
+				std::vector<VkExtensionProperties> vec_ExtensionProperty{
+					extensionCount};
 				if (vkEnumerateInstanceExtensionProperties(
-						nullptr, &exteCount, &vec_ExteProp.front()) !=
-					VK_SUCCESS) {
+						nullptr, &extensionCount,
+						&vec_ExtensionProperty.front()) != VK_SUCCESS) {
 					std::cerr
 						<< "EnumerateInstanceExtensionProperties failed!\n";
 					break;
@@ -59,31 +59,34 @@ bool CVkMana::initMana() {
 				// for (const auto & extProp : vec_ExtProp)
 				//	vec_EnableInstExte.emplace_back(extProp.extensionName);
 
-				for (const auto & expectInstExte : vec_ExpectInstExte) {
-					const auto & it_exteProp = std::find_if(
-						vec_ExteProp.begin(), vec_ExteProp.end(),
-						[&expectInstExte](
-							const VkExtensionProperties & exteProp) -> bool {
-							return strcmp(exteProp.extensionName,
-										  expectInstExte) == 0;
+				for (const auto & expectInstanceExtension :
+					 vec_ExpectInstanceExtension) {
+					const auto & it_ExtensionProperty = std::find_if(
+						vec_ExtensionProperty.begin(),
+						vec_ExtensionProperty.end(),
+						[&expectInstanceExtension](
+							const VkExtensionProperties & extensionProperty) -> bool {
+							return strcmp(extensionProperty.extensionName,
+										  expectInstanceExtension) == 0;
 						});
 
-					if (it_exteProp != vec_ExteProp.end())
-						vec_EnableInstExte.emplace_back(
-							it_exteProp->extensionName);
+					if (it_ExtensionProperty != vec_ExtensionProperty.end())
+						vec_EnableInstExtension.emplace_back(
+							it_ExtensionProperty->extensionName);
 				}
 			}
-			if (!vec_EnableInstExte.empty()) {
-				instCI.enabledExtensionCount =
-					static_cast<uint32_t>(vec_EnableInstExte.size());
-				instCI.ppEnabledExtensionNames = vec_EnableInstExte.data();
+			if (!vec_EnableInstExtension.empty()) {
+				instanceCI.enabledExtensionCount =
+					static_cast<uint32_t>(vec_EnableInstExtension.size());
+				instanceCI.ppEnabledExtensionNames =
+					vec_EnableInstExtension.data();
 			} else {
 				std::cerr << "EnableInstExte is emtyp!\n";
 				break;
 			}
 
 			///
-			std::vector<const char *> vec_EnableInstLayer;
+			std::vector<const char *> vec_EnableInstanceLayer;
 			{
 				uint32_t layerCount = 0;
 				vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -92,33 +95,33 @@ bool CVkMana::initMana() {
 					break;
 				}
 
-				vec_EnableInstLayer.reserve(layerCount);
+				vec_EnableInstanceLayer.reserve(layerCount);
 
-				std::vector<VkLayerProperties> vec_LayerProp{layerCount};
+				std::vector<VkLayerProperties> vec_LayerProperty{layerCount};
 				if (vkEnumerateInstanceLayerProperties(
-						&layerCount, vec_LayerProp.data()) != VK_SUCCESS) {
+						&layerCount, vec_LayerProperty.data()) != VK_SUCCESS) {
 					std::cerr << "EnumerateInstanceLayerProperties failed!\n";
 					break;
 				}
 
-				for (const auto & expectInstLayer : vec_ExpectInstLayer) {
-					const auto & it_LayerProp = std::find_if(
-						vec_LayerProp.begin(), vec_LayerProp.end(),
-						[&expectInstLayer](
-							const VkLayerProperties & layerProp) -> bool {
-							return strcmp(expectInstLayer,
-										  layerProp.layerName) == 0;
+				for (const auto & expectInstanceLayer : vec_ExpectInstanceLayer) {
+					const auto & it_LayerProperty = std::find_if(
+						vec_LayerProperty.begin(), vec_LayerProperty.end(),
+						[&expectInstanceLayer](
+							const VkLayerProperties & layerProperty) -> bool {
+							return strcmp(expectInstanceLayer,
+										  layerProperty.layerName) == 0;
 						});
 
-					if (it_LayerProp != vec_LayerProp.end())
-						vec_EnableInstLayer.emplace_back(
-							it_LayerProp->layerName);
+					if (it_LayerProperty != vec_LayerProperty.end())
+						vec_EnableInstanceLayer.emplace_back(
+							it_LayerProperty->layerName);
 				}
 			}
-			if (!vec_EnableInstLayer.empty()) {
-				instCI.enabledLayerCount =
-					static_cast<uint32_t>(vec_EnableInstLayer.size());
-				instCI.ppEnabledLayerNames = vec_EnableInstLayer.data();
+			if (!vec_EnableInstanceLayer.empty()) {
+				instanceCI.enabledLayerCount =
+					static_cast<uint32_t>(vec_EnableInstanceLayer.size());
+				instanceCI.ppEnabledLayerNames = vec_EnableInstanceLayer.data();
 			} else {
 				std::cerr << "EnableInstLayer is emtyp!\n";
 				break;
@@ -135,17 +138,21 @@ bool CVkMana::initMana() {
 							   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
 				.pfnUserCallback = debugUtilsMessCallback,
 			};
-			debugMessCIExte.pNext = instCI.pNext;
-			instCI.pNext = &debugMessCIExte;
+			debugMessCIExte.pNext = instanceCI.pNext;
+			instanceCI.pNext = &debugMessCIExte;
 
 			// 此处还可以补充 layerSettings
 
 			///
-			if (vkCreateInstance(&instCI, nullptr, &m_VkInst) != VK_SUCCESS) {
+			if (vkCreateInstance(&instanceCI, nullptr, &m_VkInstance) !=
+				VK_SUCCESS) {
 				std::cerr << "vkCreateInstance failed!\n";
 				break;
 			}
 		}
+
+		if (!valid())
+			break;
 
 		rtn = true;
 	} while (0);
@@ -153,10 +160,21 @@ bool CVkMana::initMana() {
 	return rtn;
 }
 
-VkBool32 CVkMana::debugUtilsMessCallback(
+VkBool32 CVkManager::debugUtilsMessCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
 	void * pUserData) {
 	return false; // do nothing
+}
+
+bool CVkManager::valid() {
+	return (m_VkInstance != nullptr) && (m_VkInstance != VK_NULL_HANDLE);
+}
+
+CVkManager::~CVkManager() {
+	if (m_VkManagerInstance != nullptr)
+		delete m_VkManagerInstance;
+
+	// 还需要释放 VK 资源
 }
