@@ -2,17 +2,18 @@
 
 #include "vulkan/vulkan.h"
 
+#include <minwindef.h>
 #include <vector>
 
 class CVkManager {
 	private:
 		static CVkManager * m_VkManagerInstance;
 
-		VkInstance m_VkInstance = VK_NULL_HANDLE;
+		VkInstance m_VkInstance{VK_NULL_HANDLE};
 
-		const char * m_AppName = "MyExample";
-		const char * m_Engine = "MyEngine";
-		const uint32_t m_ApiVersion = VK_API_VERSION_1_0;
+		const char * m_AppName{"MyExample"};
+		const char * m_Engine{"MyEngine"};
+		const uint32_t m_ApiVersion{VK_API_VERSION_1_0};
 
 		const std::vector<const char *> vec_ExpectInstanceExtension{
 			VK_KHR_SURFACE_EXTENSION_NAME,
@@ -24,6 +25,8 @@ class CVkManager {
 			"VK_LAYER_KHRONOS_validation",
 		};
 
+		HINSTANCE m_AppInctance{nullptr};
+
 	private:
 		CVkManager() = default;
 		~CVkManager();
@@ -32,7 +35,6 @@ class CVkManager {
 		CVkManager & operator=(const CVkManager &) = delete;
 		CVkManager & operator=(CVkManager &&) = delete;
 
-		static CVkManager & getInstance();
 		bool initManager();
 
 		static VkBool32
@@ -43,4 +45,9 @@ class CVkManager {
 
 	public:
 		bool valid();
+
+		static CVkManager & getInstance();
+
+		inline HINSTANCE getAppInstance() const { return m_AppInctance; };
+		inline VkInstance getVkInstance() const { return m_VkInstance; };
 };

@@ -1,9 +1,12 @@
 #include "deviceManager.h"
+#include <cassert>
+
+CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
 
 CDeviceManager & CDeviceManager::getInst() {
 	if (m_DeviceManagerInstance == nullptr) {
 		m_DeviceManagerInstance = new CDeviceManager();
-		m_DeviceManagerInstance->initManager();
+		assert(m_DeviceManagerInstance->initManager());
 	}
 
 	return *m_DeviceManagerInstance;
@@ -11,6 +14,11 @@ CDeviceManager & CDeviceManager::getInst() {
 
 bool CDeviceManager::initManager() {
 	bool rtn = false;
+
+	do {
+
+		rtn = true;
+	} while (0);
 
 	return rtn;
 }

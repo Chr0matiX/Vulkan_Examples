@@ -1,16 +1,18 @@
 #include "vulkanManager.h"
 #include "vulkan/vulkan_core.h"
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <minwindef.h>
 
-CVkManager * CVkManager::m_VkManagerInstance = nullptr;
+CVkManager * CVkManager::m_VkManagerInstance{nullptr};
 
 CVkManager & CVkManager::getInstance() {
 	if (m_VkManagerInstance == nullptr) {
 		m_VkManagerInstance = new CVkManager();
-		m_VkManagerInstance->initManager();
+		assert(m_VkManagerInstance->initManager());
 	}
 
 	return *m_VkManagerInstance;
@@ -20,6 +22,8 @@ bool CVkManager::initManager() {
 	bool rtn = false;
 
 	do {
+		m_AppInctance = GetModuleHandle(NULL);
+
 		// Create VkInstace
 		{
 			VkInstanceCreateInfo instanceCI{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -34,7 +38,7 @@ bool CVkManager::initManager() {
 			///
 			std::vector<const char *> vec_EnableInstExtension;
 			{
-				uint32_t extensionCount = 0;
+				uint32_t extensionCount{0};
 				vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 				if (extensionCount <= 0) {
 					std::cerr << "extensionCount is zero!\n";
@@ -78,7 +82,7 @@ bool CVkManager::initManager() {
 			///
 			std::vector<const char *> vec_EnableInstanceLayer;
 			{
-				uint32_t layerCount = 0;
+				uint32_t layerCount{0};
 				vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 				if (layerCount <= 0) {
 					std::cerr << "layerCount is zero!\n";
@@ -153,7 +157,7 @@ CVkManager::debugUtilsMessCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messag
 }
 
 bool CVkManager::valid() {
-	return (m_VkInstance != nullptr) && (m_VkInstance != VK_NULL_HANDLE);
+	return (m_VkManagerInstance != nullptr) && (m_VkInstance != VK_NULL_HANDLE);
 }
 
 CVkManager::~CVkManager() {
