@@ -15,7 +15,9 @@ bool CDeviceManager::initManager() {
 	return rtn;
 }
 
-bool CDeviceManager::valid() { return (m_DeviceManagerInstance != nullptr); }
+bool CDeviceManager::valid() {
+	return (m_DeviceManagerInstance != nullptr);
+}
 
 CDeviceManager::~CDeviceManager() {
 	if (m_DeviceManagerInstance != nullptr)

@@ -1,17 +1,60 @@
+# 基础样式参考
 BasedOnStyle: LLVM
+
+# --- 缩进与制表符相关 (核心修改) ---
 IndentWidth: 4
-UseTab: Always
 TabWidth: 4
+UseTab: Always
+
+# --- 访问修饰符 (public/private) 缩进 ---
+# 设置为 0 配合下面的 IndentAccessModifiers: true，
+# 可以确保修饰符相对于类定义缩进一个 Tab。
+AccessModifierOffset: 0
+IndentAccessModifiers: true
+
+# --- 命名空间缩进 ---
+NamespaceIndentation: All
+
+# --- 大括号换行风格 (核心修改：左大括号不换行) ---
+# BreakBeforeBraces 设置为 Attach 确保 { 与 if/for/function 同行
+BreakBeforeBraces: Attach
+
+# --- 指针与引用对齐 (核心修改) ---
+# 显式禁止自动推导对齐方式，强制执行 Middle
+DerivePointerAlignment: false
+PointerAlignment: Middle
+
+# --- VS Studio 风格补全 ---
+# 连续赋值对齐（VS 常用风格）
+AlignConsecutiveAssignments: false
+# 连续声明对齐（根据专业偏好，通常建议保持 false 以维持简洁）
+AlignConsecutiveDeclarations: false
+# 括号内参数换行对齐
+AlignAfterOpenBracket: Align
+# 允许短函数放在同一行（如果你希望更紧凑，可以设为 InlineOnly 或 All）
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+# --- 其他细节调整 ---
+# 限制单行长度（VS 默认为空，但建议设为一个合理值如 120）
+ColumnLimit: 100
+# 允许在赋值前换行
+AlwaysBreakAfterReturnType: None
+
+# 以下做存档
+#BasedOnStyle: LLVM
+#IndentWidth: 4
+#UseTab: Always
+#TabWidth: 4
 
 # 访问修饰符也按 4 列 Tab 缩进
-AccessModifierOffset: -4				# 向左退 4 列（负数 = 与主体同级）
-IndentAccessModifiers: false		# 允许 Tab 缩进 private:/public:
+#AccessModifierOffset: -4				# 向左退 4 列（负数 = 与主体同级）
+#IndentAccessModifiers: false		# 允许 Tab 缩进 private:/public:
 
 # 命名空间配置 - 内部元素缩进一级
-NamespaceIndentation: All
+#NamespaceIndentation: All
 
 # 强制关闭自动推导对齐方式，否则它会根据你代码中的既有风格自动改变
 #DerivePointerAlignment: false
 
 # 设置指针和引用的对齐方式为居中
-PointerAlignment: Middle
+#PointerAlignment: Middle
