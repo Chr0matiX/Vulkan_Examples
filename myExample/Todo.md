@@ -1,3 +1,9 @@
+# 研究
+
 - 研究`VulkanExampleBase::setupDepthStencil`中申请显存的细节
 - 研究`VulkanExampleBase::createSynchronizationPrimitives`中不同同步机制的细节
 - 研究`VulkanExampleBase::setupRenderPass`中缓存定义的细节
+
+# 实现
+
+1. 实现 CSwapchainManager
