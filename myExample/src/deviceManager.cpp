@@ -19,6 +19,8 @@ bool CDeviceManager::initManager() {
 
 	do {
 
+		
+
 		if (!valid())
 			break;
 

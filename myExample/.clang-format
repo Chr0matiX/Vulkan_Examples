@@ -43,7 +43,7 @@ AlwaysBreakAfterReturnType: None
 # --- 宏定义续行符对齐 (针对你的需求) ---
 # Left: 续行符紧跟代码 (最利于观察每一行)
 # Right: 续行符对齐到最右侧 (最美观但可能导致大片空白)
-#AlignEscapedNewlines: Left
+AlignEscapedNewlines: Left
 
 # 以下做存档
 #BasedOnStyle: LLVM

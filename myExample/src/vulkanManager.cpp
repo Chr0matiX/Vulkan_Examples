@@ -7,18 +7,18 @@
 #include <cassert>
 #include <iostream>
 
-CVkManager * CVkManager::m_VkManagerInstance{nullptr};
+CVulkanManager * CVulkanManager::m_VkManagerInstance{nullptr};
 
-CVkManager & CVkManager::getInstance() {
+CVulkanManager & CVulkanManager::getInstance() {
 	if (m_VkManagerInstance == nullptr) {
-		m_VkManagerInstance = new CVkManager();
+		m_VkManagerInstance = new CVulkanManager();
 		assert(m_VkManagerInstance->initManager());
 	}
 
 	return *m_VkManagerInstance;
 }
 
-bool CVkManager::initManager() {
+bool CVulkanManager::initManager() {
 	bool rtn = false;
 
 	do {
@@ -149,18 +149,18 @@ bool CVkManager::initManager() {
 }
 
 VkBool32
-CVkManager::debugUtilsMessCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+CVulkanManager::debugUtilsMessCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 								   VkDebugUtilsMessageTypeFlagsEXT messageType,
 								   const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
 								   void * pUserData) {
 	return false; // do nothing
 }
 
-bool CVkManager::valid() {
+bool CVulkanManager::valid() {
 	return (m_VkManagerInstance != nullptr) && (m_VkInstance != VK_NULL_HANDLE);
 }
 
-CVkManager::~CVkManager() {
+CVulkanManager::~CVulkanManager() {
 	if (m_VkManagerInstance != nullptr)
 		delete m_VkManagerInstance;
 

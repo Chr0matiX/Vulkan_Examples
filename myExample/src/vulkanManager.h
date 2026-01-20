@@ -6,9 +6,9 @@
 
 #include <vector>
 
-class CVkManager {
+class CVulkanManager {
 	private:
-		static CVkManager * m_VkManagerInstance;
+		static CVulkanManager * m_VkManagerInstance;
 
 		VkInstance m_VkInstance{VK_NULL_HANDLE};
 
@@ -29,12 +29,13 @@ class CVkManager {
 		HINSTANCE m_AppInctance{nullptr};
 
 	private:
-		CVkManager() = default;
-		~CVkManager();
-		CVkManager(const CVkManager &) = delete;
-		CVkManager(CVkManager &&) = delete;
-		CVkManager & operator=(const CVkManager &) = delete;
-		CVkManager & operator=(CVkManager &&) = delete;
+		CVulkanManager() = default;
+		CVulkanManager(const CVulkanManager &) = delete;
+		CVulkanManager(CVulkanManager &&) = delete;
+		CVulkanManager & operator=(const CVulkanManager &) = delete;
+		CVulkanManager & operator=(CVulkanManager &&) = delete;
+
+		~CVulkanManager();
 
 		bool initManager();
 
@@ -47,7 +48,7 @@ class CVkManager {
 	public:
 		bool valid();
 
-		static CVkManager & getInstance();
+		static CVulkanManager & getInstance();
 
 		inline HINSTANCE getAppInstance() const { return m_AppInctance; };
 		inline VkInstance getVkInstance() const { return m_VkInstance; };

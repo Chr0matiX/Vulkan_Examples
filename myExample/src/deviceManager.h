@@ -8,15 +8,17 @@ class CDeviceManager {
 
 	private:
 		CDeviceManager() = default;
-		~CDeviceManager();
 		CDeviceManager(const CDeviceManager &) = delete;
 		CDeviceManager(CDeviceManager &&) = delete;
 		CDeviceManager & operator=(const CDeviceManager &) = delete;
 		CDeviceManager & operator=(CDeviceManager &&) = delete;
 
+		~CDeviceManager();
+
 		static CDeviceManager & getInst();
-		bool initManager();
 
 	public:
 		bool valid();
+
+		bool initManager();
 };

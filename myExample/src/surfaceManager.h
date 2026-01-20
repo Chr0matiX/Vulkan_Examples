@@ -18,17 +18,19 @@ class CSurfaceManager {
 
 	private:
 		CSurfaceManager() = default;
-		~CSurfaceManager();
 		CSurfaceManager(const CSurfaceManager &) = delete;
 		CSurfaceManager(CSurfaceManager &&) = delete;
 		CSurfaceManager & operator=(const CSurfaceManager &) = delete;
 		CSurfaceManager & operator=(CSurfaceManager &&) = delete;
 
-		static CSurfaceManager & getInst();
+		~CSurfaceManager();
+
 		bool initManager();
 
 		static LRESULT handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	public:
 		bool valid();
+
+		static CSurfaceManager & getInst();
 };

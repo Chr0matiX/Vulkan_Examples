@@ -1,4 +1,5 @@
 #include "surfaceManager.h"
+#include "vulkanManager.h"
 
 #include <cassert>
 #include <iostream>
@@ -18,7 +19,7 @@ bool CSurfaceManager::initManager() {
 	bool rtn = false;
 
 	do {
-		if (CVkManager::getInstance().valid() == false)
+		if (CVulkanManager::getInstance().valid() == false)
 			break;
 
 		// HWND m_WindowHandle 句柄
@@ -32,7 +33,7 @@ bool CSurfaceManager::initManager() {
 				.cbClsExtra = 0,
 				.cbWndExtra = 0,
 				// 当前应用程序实例的句柄
-				.hInstance = CVkManager::getInstance().getAppInstance(),
+				.hInstance = CVulkanManager::getInstance().getAppInstance(),
 				.hIcon = LoadIcon(NULL, IDI_APPLICATION),
 				.hCursor = LoadCursor(NULL, IDC_ARROW),
 				// 指定背景画刷为黑色，避免窗口在部分刷新场景下的闪烁
@@ -57,11 +58,13 @@ bool CSurfaceManager::initManager() {
 
 			AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
+			const auto & windowRectWidth = windowRect.right - windowRect.left;
+			const auto & WindowRectHeight = windowRect.bottom - windowRect.top;
+
 			m_WindowHandle = CreateWindowEx(dwExStyle, m_MainWindowsClassName, m_WindowsTitle,
 											dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0, 0,
-											windowRect.right - windowRect.left,
-											windowRect.bottom - windowRect.top, NULL, NULL,
-											CVkManager::getInstance().getAppInstance(), NULL);
+											windowRectWidth, WindowRectHeight, NULL, NULL,
+											CVulkanManager::getInstance().getAppInstance(), NULL);
 
 			if (m_WindowHandle == nullptr) {
 				std::cerr << "CreateWindowEx failed!\n";
@@ -69,8 +72,8 @@ bool CSurfaceManager::initManager() {
 			}
 
 			// 设置窗口位置
-			uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
-			uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
+			uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRectWidth) / 2;
+			uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - WindowRectHeight) / 2;
 			SetWindowPos(m_WindowHandle, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
 			ShowWindow(m_WindowHandle, SW_SHOW);
@@ -82,10 +85,10 @@ bool CSurfaceManager::initManager() {
 		{
 			VkWin32SurfaceCreateInfoKHR surfaceCI{
 				.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-				.hinstance = CVkManager::getInstance().getAppInstance(),
+				.hinstance = CVulkanManager::getInstance().getAppInstance(),
 				.hwnd = m_WindowHandle};
 
-			if (vkCreateWin32SurfaceKHR(CVkManager::getInstance().getVkInstance(), &surfaceCI,
+			if (vkCreateWin32SurfaceKHR(CVulkanManager::getInstance().getVkInstance(), &surfaceCI,
 										nullptr, &m_SurfaceKHR) != VK_SUCCESS) {
 				std::cerr << "vkCreateWin32SurfaceKHR failed!\n";
 				break;
@@ -108,10 +111,14 @@ bool CSurfaceManager::valid() {
 CSurfaceManager::~CSurfaceManager() {
 	if (m_SurfaceManagerInstance != nullptr)
 		delete m_SurfaceManagerInstance;
+
+	vkDestroySurfaceKHR(CVulkanManager::getInstance().getVkInstance(), m_SurfaceKHR, nullptr);
+	DestroyWindow(m_WindowHandle);
+	UnregisterClass(m_MainWindowsClassName, CVulkanManager::getInstance().getAppInstance());
 }
 
 LRESULT CSurfaceManager::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	if (CVkManager::getInstance().valid() == true) {
+	if (CVulkanManager::getInstance().valid() == true) {
 		/*
 		switch (uMsg) {
 		case WM_CLOSE:
