@@ -30,15 +30,20 @@ AlignConsecutiveAssignments: false
 # 连续声明对齐（根据专业偏好，通常建议保持 false 以维持简洁）
 AlignConsecutiveDeclarations: false
 # 括号内参数换行对齐
-AlignAfterOpenBracket: Align
+#AlignAfterOpenBracket: Align
 # 允许短函数放在同一行（如果你希望更紧凑，可以设为 InlineOnly 或 All）
 AllowShortFunctionsOnASingleLine: InlineOnly
 
 # --- 其他细节调整 ---
-# 限制单行长度（VS 默认为空，但建议设为一个合理值如 120）
+# 限制单行长度（VS 默认为空，但建议设为一个合理值如 100）
 ColumnLimit: 100
 # 允许在赋值前换行
 AlwaysBreakAfterReturnType: None
+
+# --- 宏定义续行符对齐 (针对你的需求) ---
+# Left: 续行符紧跟代码 (最利于观察每一行)
+# Right: 续行符对齐到最右侧 (最美观但可能导致大片空白)
+#AlignEscapedNewlines: Left
 
 # 以下做存档
 #BasedOnStyle: LLVM

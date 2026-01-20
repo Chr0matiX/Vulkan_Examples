@@ -1,8 +1,9 @@
 #pragma once
 
+#include "WinCommon.h"
+
 #include "vulkan/vulkan.h"
 
-#include <minwindef.h>
 #include <vector>
 
 class CVkManager {

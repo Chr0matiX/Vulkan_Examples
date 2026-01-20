@@ -1,11 +1,7 @@
 #include "surfaceManager.h"
-#include "vulkan/vulkan_core.h"
-#include "vulkan/vulkan_win32.h"
-#include "vulkanManager.h"
+
 #include <cassert>
 #include <iostream>
-#include <libloaderapi.h>
-#include <winuser.h>
 
 CSurfaceManager * CSurfaceManager::m_SurfaceManagerInstance{nullptr};
 
@@ -106,7 +102,7 @@ bool CSurfaceManager::initManager() {
 }
 
 bool CSurfaceManager::valid() {
-	return true;
+	return (m_WindowHandle != nullptr) && (m_SurfaceKHR != VK_NULL_HANDLE);
 }
 
 CSurfaceManager::~CSurfaceManager() {

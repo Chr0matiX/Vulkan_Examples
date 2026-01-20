@@ -1,5 +1,7 @@
 #include "deviceManager.h"
+
 #include <cassert>
+#include <iostream>
 
 CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
 
@@ -17,6 +19,9 @@ bool CDeviceManager::initManager() {
 
 	do {
 
+		if (!valid())
+			break;
+
 		rtn = true;
 	} while (0);
 
@@ -24,7 +29,7 @@ bool CDeviceManager::initManager() {
 }
 
 bool CDeviceManager::valid() {
-	return (m_DeviceManagerInstance != nullptr);
+	return true;
 }
 
 CDeviceManager::~CDeviceManager() {

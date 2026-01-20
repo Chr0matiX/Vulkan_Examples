@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vulkanManager.h"
+
 class CDeviceManager {
 	private:
 		static CDeviceManager * m_DeviceManagerInstance;

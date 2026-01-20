@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vulkanManager.h"
-#include <windef.h>
 
 class CSurfaceManager {
 	private:

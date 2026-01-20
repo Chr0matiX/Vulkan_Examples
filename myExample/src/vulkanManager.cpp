@@ -1,11 +1,11 @@
 #include "vulkanManager.h"
-#include "vulkan/vulkan_core.h"
+
+#include "deviceManager.h"
+#include "surfaceManager.h"
+
 #include <algorithm>
 #include <cassert>
-#include <cstdint>
-#include <cstring>
 #include <iostream>
-#include <minwindef.h>
 
 CVkManager * CVkManager::m_VkManagerInstance{nullptr};
 
