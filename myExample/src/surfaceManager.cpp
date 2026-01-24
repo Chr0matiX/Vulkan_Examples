@@ -6,7 +6,7 @@
 
 CSurfaceManager * CSurfaceManager::m_SurfaceManagerInstance{nullptr};
 
-CSurfaceManager & CSurfaceManager::getInst() {
+CSurfaceManager & CSurfaceManager::getInstance() {
 	if (m_SurfaceManagerInstance == nullptr) {
 		m_SurfaceManagerInstance = new CSurfaceManager();
 		assert(m_SurfaceManagerInstance->initManager());
@@ -187,21 +187,13 @@ LRESULT CSurfaceManager::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wPara
 			}
 			break;
 		case WM_LBUTTONDOWN:
-			mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-			mouseState.buttons.left = true;
-			break;
-		case WM_RBUTTONDOWN:
-			mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-			mouseState.buttons.right = true;
-			break;
-		case WM_MBUTTONDOWN:
-			mouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
-			mouseState.buttons.middle = true;
-			break;
-		case WM_LBUTTONUP:
-			mouseState.buttons.left = false;
-			break;
-		case WM_RBUTTONUP:
+			mouseState.position = glm::vec2((float)LOWORD(lParam),
+		(float)HIWORD(lParam)); mouseState.buttons.left = true; break; case
+		WM_RBUTTONDOWN: mouseState.position = glm::vec2((float)LOWORD(lParam),
+		(float)HIWORD(lParam)); mouseState.buttons.right = true; break; case
+		WM_MBUTTONDOWN: mouseState.position = glm::vec2((float)LOWORD(lParam),
+		(float)HIWORD(lParam)); mouseState.buttons.middle = true; break; case
+		WM_LBUTTONUP: mouseState.buttons.left = false; break; case WM_RBUTTONUP:
 			mouseState.buttons.right = false;
 			break;
 		case WM_MBUTTONUP:
@@ -218,10 +210,9 @@ LRESULT CSurfaceManager::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wPara
 		}
 		case WM_SIZE:
 			if ((prepared) && (wParam != SIZE_MINIMIZED)) {
-				if ((resizing) || ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED))) {
-					destWidth = LOWORD(lParam);
-					destHeight = HIWORD(lParam);
-					windowResize();
+				if ((resizing) || ((wParam == SIZE_MAXIMIZED) || (wParam ==
+		SIZE_RESTORED))) { destWidth = LOWORD(lParam); destHeight =
+		HIWORD(lParam); windowResize();
 				}
 			}
 			break;

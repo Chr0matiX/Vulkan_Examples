@@ -150,9 +150,9 @@ bool CVulkanManager::initManager() {
 
 VkBool32
 CVulkanManager::debugUtilsMessCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-								   VkDebugUtilsMessageTypeFlagsEXT messageType,
-								   const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
-								   void * pUserData) {
+									   VkDebugUtilsMessageTypeFlagsEXT messageType,
+									   const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
+									   void * pUserData) {
 	return false; // do nothing
 }
 

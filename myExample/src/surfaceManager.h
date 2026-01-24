@@ -32,5 +32,7 @@ class CSurfaceManager {
 	public:
 		bool valid();
 
-		static CSurfaceManager & getInst();
+		static CSurfaceManager & getInstance();
+
+		inline VkSurfaceKHR getSurfaceKHR() const noexcept { return m_SurfaceKHR; }
 };
