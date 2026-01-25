@@ -7,3 +7,14 @@
 # 实现
 
 1. 实现 CSwapchainManager
+	1. 主要成员
+		1. ~~VkSwapchainKHR~~
+		2. ~~std::vector<VkImage>~~
+		3. ~~std::vector<VkImageView>~~
+		4. ~~VkFormat~~
+		5. ~~VkExtent2D~~
+	2. 主要功能
+		1. 属性协商
+		2. 资源创建
+		3. 状态维护与重建
+		4. 同步与交互接口

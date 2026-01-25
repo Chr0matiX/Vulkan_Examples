@@ -8,7 +8,7 @@
 #include <vector>
 
 class CVulkanManager {
-		SINGLETON_CLASS(CVulkanManager);
+		SINGLETON_CLASS(CVulkanManager)
 
 	private:
 		static CVulkanManager * m_VkManagerInstance;

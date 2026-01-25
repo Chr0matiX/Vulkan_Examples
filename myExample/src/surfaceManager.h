@@ -3,7 +3,7 @@
 #include "vulkanManager.h"
 
 class CSurfaceManager {
-		SINGLETON_CLASS(CSurfaceManager);
+		SINGLETON_CLASS(CSurfaceManager)
 
 	private:
 		static CSurfaceManager * m_SurfaceManagerInstance;

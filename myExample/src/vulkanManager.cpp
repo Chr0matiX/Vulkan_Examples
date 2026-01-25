@@ -2,6 +2,7 @@
 
 #include "deviceManager.h"
 #include "surfaceManager.h"
+#include "swapchainManager.h"
 
 #include <algorithm>
 #include <cassert>
@@ -162,4 +163,5 @@ void CVulkanManager::destroyManager() {
 
 	CSurfaceManager::getInstance().destroyManager();
 	CDeviceManager::getInstance().destroyManager();
+	CSwapchainManager::getInstance().destroyManager();
 }

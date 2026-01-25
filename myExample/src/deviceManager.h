@@ -8,7 +8,7 @@
 #include <set>
 
 class CDeviceManager {
-		SINGLETON_CLASS(CDeviceManager);
+		SINGLETON_CLASS(CDeviceManager)
 
 	private:
 		static CDeviceManager * m_DeviceManagerInstance;
@@ -79,4 +79,6 @@ class CDeviceManager {
 		void destroyManager();
 
 		static CDeviceManager & getInstance();
+		inline VkPhysicalDevice getPhysicalDevice() { return m_PhysicalDevice; };
+		inline VkDevice getLogicalDevice() { return m_LogicalDevice; };
 };
