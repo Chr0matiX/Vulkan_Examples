@@ -3,6 +3,8 @@
 #include "vulkanManager.h"
 
 class CSurfaceManager {
+		SINGLETON_CLASS(CSurfaceManager);
+
 	private:
 		static CSurfaceManager * m_SurfaceManagerInstance;
 
@@ -17,22 +19,14 @@ class CSurfaceManager {
 		int m_WindowHeight{0};
 
 	private:
-		CSurfaceManager() = default;
-		CSurfaceManager(const CSurfaceManager &) = delete;
-		CSurfaceManager(CSurfaceManager &&) = delete;
-		CSurfaceManager & operator=(const CSurfaceManager &) = delete;
-		CSurfaceManager & operator=(CSurfaceManager &&) = delete;
-
-		~CSurfaceManager();
-
 		bool initManager();
 
 		static LRESULT handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	public:
 		bool valid();
+		void destroyManager();
 
 		static CSurfaceManager & getInstance();
-
 		inline VkSurfaceKHR getSurfaceKHR() const noexcept { return m_SurfaceKHR; }
 };

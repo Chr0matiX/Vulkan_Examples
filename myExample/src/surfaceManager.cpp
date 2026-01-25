@@ -19,9 +19,6 @@ bool CSurfaceManager::initManager() {
 	bool rtn = false;
 
 	do {
-		if (CVulkanManager::getInstance().valid() == false)
-			break;
-
 		// HWND m_WindowHandle 句柄
 		{
 			WNDCLASSEX wndClass{
@@ -108,7 +105,7 @@ bool CSurfaceManager::valid() {
 	return (m_WindowHandle != nullptr) && (m_SurfaceKHR != VK_NULL_HANDLE);
 }
 
-CSurfaceManager::~CSurfaceManager() {
+void CSurfaceManager::destroyManager() {
 	if (m_SurfaceManagerInstance != nullptr)
 		delete m_SurfaceManagerInstance;
 

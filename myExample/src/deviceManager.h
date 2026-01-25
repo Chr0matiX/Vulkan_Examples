@@ -5,8 +5,11 @@
 #include <cstdarg>
 #include <cstdint>
 #include <optional>
+#include <set>
 
 class CDeviceManager {
+		SINGLETON_CLASS(CDeviceManager);
+
 	private:
 		static CDeviceManager * m_DeviceManagerInstance;
 
@@ -24,6 +27,10 @@ class CDeviceManager {
 										VK_QUEUE_COMPUTE_BIT};
 
 		const std::vector<const char *> vec_ExpectDeviceExtension{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures{};
+
+		static const float m_DefaultQueuePriority;
 
 		struct {
 			private:
@@ -54,24 +61,22 @@ class CDeviceManager {
 				inline uint32_t getCompute() const {
 					return m_Compute.value_or(m_Graphics.value());
 				}
+
+				inline std::set<uint32_t> getQueueIndexes() {
+					return std::set<uint32_t>{getGraphics(), getPresent(), getTransfer(),
+											  getCompute()};
+				}
 		} m_QueueIndex;
 
 	private:
-		CDeviceManager() = default;
-		CDeviceManager(const CDeviceManager &) = delete;
-		CDeviceManager(CDeviceManager &&) = delete;
-		CDeviceManager & operator=(const CDeviceManager &) = delete;
-		CDeviceManager & operator=(CDeviceManager &&) = delete;
-
-		~CDeviceManager();
-
 		bool initManager();
 
-		// 分数 >= 0 为正常，分数 < 0 为
+		// 此处还需要为整体配置联动，这里写的太简陋了
 		int ratePhysicalDevice(const VkPhysicalDevice & physicalDevice);
 
 	public:
 		bool valid();
+		void destroyManager();
 
 		static CDeviceManager & getInstance();
 };

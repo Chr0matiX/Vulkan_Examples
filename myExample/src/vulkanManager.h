@@ -2,11 +2,14 @@
 
 #include "WinCommon.h"
 
+#include "Utils.hpp"
 #include "vulkan/vulkan.h"
 
 #include <vector>
 
 class CVulkanManager {
+		SINGLETON_CLASS(CVulkanManager);
+
 	private:
 		static CVulkanManager * m_VkManagerInstance;
 
@@ -29,14 +32,6 @@ class CVulkanManager {
 		HINSTANCE m_AppInctance{nullptr};
 
 	private:
-		CVulkanManager() = default;
-		CVulkanManager(const CVulkanManager &) = delete;
-		CVulkanManager(CVulkanManager &&) = delete;
-		CVulkanManager & operator=(const CVulkanManager &) = delete;
-		CVulkanManager & operator=(CVulkanManager &&) = delete;
-
-		~CVulkanManager();
-
 		bool initManager();
 
 		static VkBool32
@@ -47,9 +42,9 @@ class CVulkanManager {
 
 	public:
 		bool valid();
+		void destroyManager();
 
 		static CVulkanManager & getInstance();
-
 		inline HINSTANCE getAppInstance() const { return m_AppInctance; };
 		inline VkInstance getVkInstance() const { return m_VkInstance; };
 };

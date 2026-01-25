@@ -5,11 +5,14 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <set>
 #include <string>
 
 CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
+
+const float CDeviceManager::m_DefaultQueuePriority = 0;
 
 CDeviceManager & CDeviceManager::getInstance() {
 	if (m_DeviceManagerInstance == nullptr) {
@@ -24,8 +27,7 @@ bool CDeviceManager::initManager() {
 	bool rtn = false;
 
 	do {
-		if (!CSurfaceManager::getInstance().valid())
-			break;
+		VkDeviceCreateInfo deviceCI{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
 		uint32_t gpuCount{0};
 		vkEnumeratePhysicalDevices(CVulkanManager::getInstance().getVkInstance(), &gpuCount,
@@ -63,71 +65,149 @@ bool CDeviceManager::initManager() {
 		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_Features);
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_MemoryProperty);
 
-		uint32_t queueFamilyCount{0};
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, nullptr);
-		if (queueFamilyCount <= 0)
-			break;
+		std::vector<VkDeviceQueueCreateInfo> vec_QueueCI;
+		{
+			uint32_t queueFamilyCount{0};
+			vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, nullptr);
+			if (queueFamilyCount <= 0)
+				break;
 
-		std::vector<VkQueueFamilyProperties> vec_queueFamilyProperty(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount,
-												 vec_queueFamilyProperty.data());
+			std::vector<VkQueueFamilyProperties> vec_queueFamilyProperty(queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount,
+													 vec_queueFamilyProperty.data());
 
-		int transferQSMax{0}, computeQSMax{0}, transferQS{0}, computeQS{0};
-		bool hasGraphicsQ{false}, hasPresentQ{false};
+			int graphicsQSMax{0}, transferQSMax{0}, computeQSMax{0}, graphicsQS{0}, transferQS{0},
+				computeQS{0};
+			bool hasPresentQ{false};
 
-		for (uint32_t queuePropertyIndex = 0; queuePropertyIndex < vec_queueFamilyProperty.size();
-			 ++queuePropertyIndex) {
-			const auto & queueProperty = vec_queueFamilyProperty[queuePropertyIndex];
-			const auto & queueFlags = queueProperty.queueFlags;
+			for (uint32_t queuePropertyIndex = 0;
+				 queuePropertyIndex < vec_queueFamilyProperty.size(); ++queuePropertyIndex) {
+				const auto & queueProperty = vec_queueFamilyProperty[queuePropertyIndex];
+				const auto & queueFlags = queueProperty.queueFlags;
 
-			if (!hasGraphicsQ && (queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-				hasGraphicsQ = true;
-				m_QueueIndex.setGraphics(queuePropertyIndex);
-			}
-
-			if (!hasPresentQ) {
 				VkBool32 presentSupport{0};
-				vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, queuePropertyIndex,
-													 CSurfaceManager::getInstance().getSurfaceKHR(),
-													 &presentSupport);
-				if (presentSupport) {
+				if ((queueFlags & VK_QUEUE_GRAPHICS_BIT) || !hasPresentQ)
+					vkGetPhysicalDeviceSurfaceSupportKHR(
+						m_PhysicalDevice, queuePropertyIndex,
+						CSurfaceManager::getInstance().getSurfaceKHR(), &presentSupport);
+
+				if (queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+					graphicsQS = 1;
+
+					if (presentSupport)
+						graphicsQS += 10;
+
+					if (graphicsQS > graphicsQSMax) {
+						graphicsQSMax = graphicsQS;
+						m_QueueIndex.setGraphics(queuePropertyIndex);
+
+						if (presentSupport) {
+							hasPresentQ = true;
+							m_QueueIndex.setPresent(queuePropertyIndex);
+						}
+					}
+				}
+
+				if (!hasPresentQ && presentSupport) {
 					hasPresentQ = true;
 					m_QueueIndex.setPresent(queuePropertyIndex);
 				}
-			}
 
-			if (queueFlags & VK_QUEUE_TRANSFER_BIT) {
-				transferQS = 0;
-				transferQS += 1;
+				if (queueFlags & VK_QUEUE_TRANSFER_BIT) {
+					transferQS = 1;
 
-				if (!(queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))) {
-					transferQS += 10;
+					if (!(queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))) {
+						transferQS += 10;
+					}
+
+					transferQS += queueProperty.queueCount;
+
+					if (transferQS > transferQSMax) {
+						transferQSMax = transferQS;
+						m_QueueIndex.setTransfer(queuePropertyIndex);
+					}
 				}
 
-				transferQS += queueProperty.queueCount;
+				if (queueFlags & VK_QUEUE_COMPUTE_BIT) {
+					computeQS = 1;
 
-				if (transferQS > transferQSMax) {
-					transferQSMax = transferQS;
-					m_QueueIndex.setTransfer(queuePropertyIndex);
-				}
-			}
+					if (!(queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+						computeQS += 10;
+					}
 
-			if (queueFlags & VK_QUEUE_COMPUTE_BIT) {
-				computeQS = 0;
-				computeQS += 1;
+					computeQS += queueProperty.queueCount;
 
-				if (!(queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-					computeQS += 10;
-				}
-
-				computeQS += queueProperty.queueCount;
-
-				if (computeQS > computeQSMax) {
-					computeQSMax = computeQS;
-					m_QueueIndex.setCompute(queuePropertyIndex);
+					if (computeQS > computeQSMax) {
+						computeQSMax = computeQS;
+						m_QueueIndex.setCompute(queuePropertyIndex);
+					}
 				}
 			}
+
+			if (!m_QueueIndex.valid())
+				break;
+
+			const auto & set_QueueIndexes = m_QueueIndex.getQueueIndexes();
+			const auto & queueIndexesCount = set_QueueIndexes.size();
+			if (queueIndexesCount <= 0)
+				break;
+
+			vec_QueueCI.reserve(queueIndexesCount);
+
+			for (const auto & queueIndex : set_QueueIndexes) {
+				VkDeviceQueueCreateInfo queueCI{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+					.queueFamilyIndex = queueIndex,
+					.queueCount = 1,
+					.pQueuePriorities = &m_DefaultQueuePriority,
+				};
+				vec_QueueCI.emplace_back(queueCI);
+			}
+
+			if (vec_QueueCI.empty())
+				break;
 		}
+		deviceCI.queueCreateInfoCount = vec_QueueCI.size();
+		deviceCI.pQueueCreateInfos = vec_QueueCI.data();
+
+		std::vector<const char *> vec_EnableDeviceExtension;
+		{
+			uint32_t extensionCount{0};
+			vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount,
+												 nullptr);
+			if (extensionCount <= 0)
+				break;
+
+			vec_EnableDeviceExtension.reserve(extensionCount);
+
+			std::vector<VkExtensionProperties> vec_DeviceExtensionProperty{extensionCount};
+			if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount,
+													 vec_DeviceExtensionProperty.data()) !=
+				VK_SUCCESS)
+				break;
+
+			for (const auto & expectDeviceExtension : vec_ExpectDeviceExtension) {
+				if (std::find_if(
+						vec_DeviceExtensionProperty.begin(), vec_DeviceExtensionProperty.end(),
+						[&expectDeviceExtension](
+							const VkExtensionProperties & deviceExtensionProperty) -> bool {
+							return strcmp(expectDeviceExtension,
+										  deviceExtensionProperty.extensionName) == 0;
+						}) != vec_DeviceExtensionProperty.end())
+					vec_EnableDeviceExtension.emplace_back(expectDeviceExtension);
+			}
+
+			if (vec_EnableDeviceExtension.empty())
+				break;
+		}
+		deviceCI.enabledExtensionCount = vec_EnableDeviceExtension.size();
+		deviceCI.ppEnabledExtensionNames = vec_EnableDeviceExtension.data();
+
+		// Features 选取还需要补充
+		deviceCI.pEnabledFeatures = &m_ExpectDeviceFeatures;
+
+		if (vkCreateDevice(m_PhysicalDevice, &deviceCI, nullptr, &m_LogicalDevice) != VK_SUCCESS)
+			break;
 
 		if (!valid())
 			break;
@@ -139,14 +219,16 @@ bool CDeviceManager::initManager() {
 }
 
 bool CDeviceManager::valid() {
-	return true;
+	return (m_PhysicalDevice != VK_NULL_HANDLE) && (m_LogicalDevice != VK_NULL_HANDLE) &&
+		   m_QueueIndex.valid();
 }
 
-CDeviceManager::~CDeviceManager() {
+void CDeviceManager::destroyManager() {
 	if (m_DeviceManagerInstance != nullptr)
 		delete m_DeviceManagerInstance;
 
-	// 还需要释放 VkDevice 的资源
+	if (m_LogicalDevice != VK_NULL_HANDLE)
+		vkDestroyDevice(m_LogicalDevice, nullptr);
 }
 
 int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) {
