@@ -4,8 +4,10 @@
 #include "vulkanManager.h"
 #include <cstdarg>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <set>
+
 
 class CDeviceManager {
 		SINGLETON_CLASS(CDeviceManager)
@@ -31,6 +33,9 @@ class CDeviceManager {
 		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures{};
 
 		static const float m_DefaultQueuePriority;
+
+		std::map<uint32_t, VkQueue> map_Index2VkQueue;
+		std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
 
 		struct {
 			private:

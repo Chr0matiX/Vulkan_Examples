@@ -66,6 +66,7 @@ bool CDeviceManager::initManager() {
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_MemoryProperty);
 
 		std::vector<VkDeviceQueueCreateInfo> vec_QueueCI;
+		std::set<uint32_t> set_QueueIndexes;
 		{
 			uint32_t queueFamilyCount{0};
 			vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &queueFamilyCount, nullptr);
@@ -147,7 +148,7 @@ bool CDeviceManager::initManager() {
 			if (!m_QueueIndex.valid())
 				break;
 
-			const auto & set_QueueIndexes = m_QueueIndex.getQueueIndexes();
+			set_QueueIndexes = m_QueueIndex.getQueueIndexes();
 			const auto & queueIndexesCount = set_QueueIndexes.size();
 			if (queueIndexesCount <= 0)
 				break;
@@ -209,6 +210,98 @@ bool CDeviceManager::initManager() {
 		if (vkCreateDevice(m_PhysicalDevice, &deviceCI, nullptr, &m_LogicalDevice) != VK_SUCCESS)
 			break;
 
+		VkQueue vkQueue;
+		VkCommandPool vkCommandPool;
+		VkCommandPoolCreateInfo commandPoolCI{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		};
+
+		for (const auto & queueIndex : set_QueueIndexes) {
+			if (map_Index2VkQueue.contains(queueIndex))
+				continue;
+
+			vkGetDeviceQueue(m_LogicalDevice, queueIndex, 0, &vkQueue);
+			map_Index2VkQueue[queueIndex] = vkQueue;
+
+			commandPoolCI.queueFamilyIndex = queueIndex;
+
+			if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
+				VK_SUCCESS)
+				break;
+			map_Index2CommandPool[queueIndex] = vkCommandPool;
+		}
+
+		{
+			if (!map_Index2VkQueue.contains(m_QueueIndex.getGraphics())) {
+				VkQueue vkQueue;
+				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getGraphics(), 0, &vkQueue);
+				map_Index2VkQueue[m_QueueIndex.getGraphics()] = vkQueue;
+
+				VkCommandPoolCreateInfo commandPoolCI{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+					.queueFamilyIndex = m_QueueIndex.getGraphics()};
+
+				VkCommandPool vkCommandPool;
+				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
+					VK_SUCCESS)
+					break;
+				map_Index2CommandPool[m_QueueIndex.getGraphics()] = vkCommandPool;
+			}
+
+			if (!map_Index2VkQueue.contains(m_QueueIndex.getPresent())) {
+				VkQueue vkQueue;
+				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getPresent(), 0, &vkQueue);
+				map_Index2VkQueue[m_QueueIndex.getPresent()] = vkQueue;
+
+				VkCommandPoolCreateInfo commandPoolCI{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+					.queueFamilyIndex = m_QueueIndex.getPresent()};
+
+				VkCommandPool vkCommandPool;
+				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
+					VK_SUCCESS)
+					break;
+				map_Index2CommandPool[m_QueueIndex.getPresent()] = vkCommandPool;
+			}
+
+			if (!map_Index2VkQueue.contains(m_QueueIndex.getTransfer())) {
+				VkQueue vkQueue;
+				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getTransfer(), 0, &vkQueue);
+				map_Index2VkQueue[m_QueueIndex.getTransfer()] = vkQueue;
+
+				VkCommandPoolCreateInfo commandPoolCI{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+					.queueFamilyIndex = m_QueueIndex.getTransfer()};
+
+				VkCommandPool vkCommandPool;
+				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
+					VK_SUCCESS)
+					break;
+				map_Index2CommandPool[m_QueueIndex.getTransfer()] = vkCommandPool;
+			}
+
+			if (!map_Index2VkQueue.contains(m_QueueIndex.getCompute())) {
+				VkQueue vkQueue;
+				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getCompute(), 0, &vkQueue);
+				map_Index2VkQueue[m_QueueIndex.getCompute()] = vkQueue;
+
+				VkCommandPoolCreateInfo commandPoolCI{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+					.queueFamilyIndex = m_QueueIndex.getCompute()};
+
+				VkCommandPool vkCommandPool;
+				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
+					VK_SUCCESS)
+					break;
+				map_Index2CommandPool[m_QueueIndex.getCompute()] = vkCommandPool;
+			}
+		}
+
 		if (!valid())
 			break;
 
@@ -220,7 +313,7 @@ bool CDeviceManager::initManager() {
 
 bool CDeviceManager::valid() {
 	return (m_PhysicalDevice != VK_NULL_HANDLE) && (m_LogicalDevice != VK_NULL_HANDLE) &&
-		   m_QueueIndex.valid();
+		   m_QueueIndex.valid() && !map_Index2VkQueue.empty() && !map_Index2CommandPool.empty();
 }
 
 void CDeviceManager::destroyManager() {
