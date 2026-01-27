@@ -74,8 +74,9 @@ bool CSwapchainManager::initManager() {
 				continue;
 		}
 
-		if (!recreateSwapchain())
-			break;
+		// 不在这里调用，可能更符合逻辑
+		//if (!recreateSwapchain())
+		//	break;
 
 		rtn = true;
 	} while (0);

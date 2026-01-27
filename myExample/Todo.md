@@ -18,3 +18,34 @@
 		2. 资源创建
 		3. 状态维护与重建
 		4. 同步与交互接口
+
+# 其他
+我先列举一下我的项目中，具体的字段成员，我的思路是围绕着字段成员包装一些对外的操作接口，所以我主要展示我的字段成员：
+
+1. CVulkanManager
+	1. VkInstance
+	2. HINSTANCE
+2. CDeviceManager
+	1. VkPhysicalDevice
+	2. VkDevice
+	3. VkPhysicalDeviceProperties
+	4. VkPhysicalDeviceFeatures
+	5. VkPhysicalDeviceMemoryProperties
+	6. struct QueueIndex
+	7. std::map<uint32_t, VkQueue> map_Index2VkQueue;
+	8. std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
+3. CSurfaceManager
+	1. HWND
+	2. VkSurfaceKHR
+	3. int m_WindowWidth{0};
+	4. int m_WindowHeight{0};
+4. CSwapchainManager
+	1. VkSwapchainKHR
+	2. std::vector<VkImage> vec_Image;
+	3. std::vector<VkImageView> vec_ImageView;
+	4. VkSurfaceFormatKHR
+	5. std::vector<VkSemaphore> vec_PresentCplSmph
+	6. std::vector<VkSemaphore> vec_RenderCplSmph
+	7. std::vector<VkFence> vec_waitFence
+
+以上就是我的大致结构，其中有些没有写变量名，但是我想这不影响结构的表示。
