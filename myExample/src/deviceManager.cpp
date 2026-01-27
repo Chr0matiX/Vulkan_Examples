@@ -9,10 +9,9 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <algorithm>
 
 CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
-
-const float CDeviceManager::m_DefaultQueuePriority = 0;
 
 CDeviceManager & CDeviceManager::getInstance() {
 	if (m_DeviceManagerInstance == nullptr) {
@@ -228,7 +227,7 @@ bool CDeviceManager::initManager() {
 
 			if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
 				VK_SUCCESS)
-				break;
+				continue;
 			map_Index2CommandPool[queueIndex] = vkCommandPool;
 		}
 

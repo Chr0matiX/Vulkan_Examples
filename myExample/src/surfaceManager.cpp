@@ -230,5 +230,5 @@ LRESULT CSurfaceManager::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wPara
 		OnHandleMessage(hWnd, uMsg, wParam, lParam);
 		*/
 	}
-	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

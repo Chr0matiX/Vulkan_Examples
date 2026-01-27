@@ -8,7 +8,6 @@
 #include <optional>
 #include <set>
 
-
 class CDeviceManager {
 		SINGLETON_CLASS(CDeviceManager)
 
@@ -32,7 +31,7 @@ class CDeviceManager {
 
 		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures{};
 
-		static const float m_DefaultQueuePriority;
+		const float m_DefaultQueuePriority{0.f};
 
 		std::map<uint32_t, VkQueue> map_Index2VkQueue;
 		std::map<uint32_t, VkCommandPool> map_Index2CommandPool;

@@ -5,6 +5,7 @@
 #include "Utils.hpp"
 #include "vulkan/vulkan.h"
 
+#include <cstdint>
 #include <vector>
 
 class CVulkanManager {
@@ -31,6 +32,8 @@ class CVulkanManager {
 
 		HINSTANCE m_AppInctance{nullptr};
 
+		const uint32_t m_MaxConcurrentFrames{2};
+
 	private:
 		bool initManager();
 
@@ -47,4 +50,5 @@ class CVulkanManager {
 		static CVulkanManager & getInstance();
 		inline HINSTANCE getAppInstance() const { return m_AppInctance; };
 		inline VkInstance getVkInstance() const { return m_VkInstance; };
+		inline uint32_t getMaxConcurrentFrames() { return m_MaxConcurrentFrames; };
 };

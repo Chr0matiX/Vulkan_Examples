@@ -2,9 +2,12 @@
 #include "deviceManager.h"
 #include "surfaceManager.h"
 #include "vulkan/vulkan_core.h"
+#include "vulkanManager.h"
 #include <cassert>
+#include <cstdint>
+#include <algorithm>
 
-CSwapchainManager * m_SwapchainManagerInstance{nullptr};
+CSwapchainManager * CSwapchainManager::m_SwapchainManagerInstance{nullptr};
 
 const std::vector<VkCompositeAlphaFlagBitsKHR> CSwapchainManager::vec_ExpectCompositeAlphaFlags = {
 	VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,			// 不透明
@@ -36,12 +39,14 @@ bool CSwapchainManager::initManager() {
 			break;
 		if (surfaceFormatCount <= 0)
 			break;
+
 		std::vector<VkSurfaceFormatKHR> vec_SurfaceFormats(surfaceFormatCount);
 		if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
 												 CSurfaceManager::getInstance().getSurfaceKHR(),
 												 &surfaceFormatCount,
 												 vec_SurfaceFormats.data()) != VK_SUCCESS)
 			break;
+
 		m_SurfaceFormat = vec_SurfaceFormats[0];
 		for (auto & availableFormat : vec_SurfaceFormats) {
 			if (std::find(vec_ExpectPreferredImageFormats.begin(),
@@ -50,6 +55,23 @@ bool CSwapchainManager::initManager() {
 				m_SurfaceFormat = availableFormat;
 				break;
 			}
+		}
+
+		VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+								  .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+		VkSemaphoreCreateInfo semaphoreCI{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+		for (uint32_t i = 0; i < CVulkanManager::getInstance().getMaxConcurrentFrames(); ++i) {
+			if (vkCreateFence(CDeviceManager::getInstance().getLogicalDevice(), &fenceCI, nullptr,
+							  &vec_waitFence[i]) != VK_SUCCESS)
+				continue;
+
+			if (vkCreateSemaphore(CDeviceManager::getInstance().getLogicalDevice(), &semaphoreCI,
+								  nullptr, &vec_PresentCplSmph[i]) != VK_SUCCESS)
+				continue;
+
+			if (vkCreateSemaphore(CDeviceManager::getInstance().getLogicalDevice(), &semaphoreCI,
+								  nullptr, &vec_RenderCplSmph[i]) != VK_SUCCESS)
+				continue;
 		}
 
 		if (!recreateSwapchain())

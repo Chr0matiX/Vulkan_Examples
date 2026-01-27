@@ -21,6 +21,12 @@ class CSwapchainManager {
 
 		VkSurfaceFormatKHR m_SurfaceFormat;
 
+		std::vector<VkSemaphore> vec_PresentCplSmph{
+			CVulkanManager::getInstance().getMaxConcurrentFrames()};
+		std::vector<VkSemaphore> vec_RenderCplSmph{
+			CVulkanManager::getInstance().getMaxConcurrentFrames()};
+		std::vector<VkFence> vec_waitFence{CVulkanManager::getInstance().getMaxConcurrentFrames()};
+
 	private:
 		bool initManager();
 
@@ -32,12 +38,3 @@ class CSwapchainManager {
 
 		static CSwapchainManager & getInstance();
 };
-
-/*
-vkCreateSwapchainKHR 似乎需要在每一次更新的时候处理，需要单独提出来
-std::vector<VkImage> 通过 swapchain 和数量直接创建出来
-std::vector<VkImageView> 通过VkImage获取
-VkFormat 通过 swapchain 获取，然后在通过配置查询，查询到第一个满足的可返回
-可能还需要一个 colorSpace
-VkExtent2D 可做局部，也可以做全局，表示显示大小
-*/

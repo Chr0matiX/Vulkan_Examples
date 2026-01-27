@@ -136,6 +136,15 @@ bool CVulkanManager::initManager() {
 			break;
 		}
 
+		if (!CSurfaceManager::getInstance().valid())
+			break;
+
+		if (!CDeviceManager::getInstance().valid())
+			break;
+
+		if (!CSwapchainManager::getInstance().valid())
+			break;
+
 		if (!valid())
 			break;
 
