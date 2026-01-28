@@ -3,9 +3,9 @@
 #include "surfaceManager.h"
 #include "vulkan/vulkan_core.h"
 #include "vulkanManager.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <algorithm>
 
 CSwapchainManager * CSwapchainManager::m_SwapchainManagerInstance{nullptr};
 
@@ -75,7 +75,7 @@ bool CSwapchainManager::initManager() {
 		}
 
 		// 不在这里调用，可能更符合逻辑
-		//if (!recreateSwapchain())
+		// if (!recreateSwapchain())
 		//	break;
 
 		rtn = true;
@@ -94,83 +94,25 @@ void CSwapchainManager::destroyManager() {
 }
 
 bool CSwapchainManager::recreateSwapchain() {
+	if (!beforeRcSwapchain())
+		return false;
+
 	VkSwapchainKHR oldSwapchain = m_SwapChain;
-
-	VkSurfaceCapabilitiesKHR surfaceCaps;
-	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												  CSurfaceManager::getInstance().getSurfaceKHR(),
-												  &surfaceCaps) != VK_SUCCESS)
-		return false;
-
-	uint32_t presentModeCount;
-	if (vkGetPhysicalDeviceSurfacePresentModesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												  CSurfaceManager::getInstance().getSurfaceKHR(),
-												  &presentModeCount, nullptr) == VK_SUCCESS)
-		return false;
-	if (presentModeCount <= 0)
-		return false;
-
-	std::vector<VkPresentModeKHR> vec_PresentModes(presentModeCount);
-	if (vkGetPhysicalDeviceSurfacePresentModesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												  CSurfaceManager::getInstance().getSurfaceKHR(),
-												  &presentModeCount,
-												  vec_PresentModes.data()) != VK_SUCCESS)
-		return false;
-
-	// 默认垂直同步
-	VkPresentModeKHR swapchainPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-	for (size_t i = 0; i < presentModeCount; i++) {
-		// Mailbox：不撕裂，低延迟
-		if (vec_PresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-			swapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-			// 若找到，则直接使用 Mailbox
-			break;
-		}
-		// Immediate：可能存在撕裂，低延迟
-		if (vec_PresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-			swapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-		}
-	}
-
-	// 选择缓冲个数
-	uint32_t desiredNumberOfSwapchainImages = surfaceCaps.minImageCount + 1;
-	if ((surfaceCaps.maxImageCount > 0) &&
-		(desiredNumberOfSwapchainImages > surfaceCaps.maxImageCount)) {
-		desiredNumberOfSwapchainImages = surfaceCaps.maxImageCount;
-	}
-
-	// 处理旋转，目前没有相关需求
-	VkSurfaceTransformFlagsKHR preTransform;
-	if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
-		// We prefer a non-rotated transform
-		preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-	} else {
-		preTransform = surfaceCaps.currentTransform;
-	}
-
-	// 处理混合方式
-	VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	for (auto & compositeAlphaFlag : vec_ExpectCompositeAlphaFlags) {
-		if (surfaceCaps.supportedCompositeAlpha & compositeAlphaFlag) {
-			compositeAlpha = compositeAlphaFlag;
-			break;
-		};
-	}
 
 	VkSwapchainCreateInfoKHR swapchainCI{
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 		.surface = CSurfaceManager::getInstance().getSurfaceKHR(),
-		.minImageCount = desiredNumberOfSwapchainImages,
+		.minImageCount = m_DesiredNumberOfSwapchainImages,
 		.imageFormat = m_SurfaceFormat.format,
 		.imageColorSpace = m_SurfaceFormat.colorSpace,
-		.imageExtent = {surfaceCaps.currentExtent.width, surfaceCaps.currentExtent.height},
+		.imageExtent = {m_SurfaceCaps.currentExtent.width, m_SurfaceCaps.currentExtent.height},
 		.imageArrayLayers = 1,
 		.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
 		.queueFamilyIndexCount = 0,
-		.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform,
-		.compositeAlpha = compositeAlpha,
-		.presentMode = swapchainPresentMode,
+		.preTransform = (VkSurfaceTransformFlagBitsKHR)m_PreTransform,
+		.compositeAlpha = m_CompositeAlpha,
+		.presentMode = m_SwapchainPresentMode,
 		// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the
 		// surface area
 		.clipped = VK_TRUE,
@@ -182,12 +124,12 @@ bool CSwapchainManager::recreateSwapchain() {
 
 	// 可以看作开启复制粘贴
 	// 可以作为传输源，可通过 vkCmdCopyImage 复制
-	if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+	if (m_SurfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	}
 
 	// 可以作为传输目的，可以向内直接写入一张渲染好的位图
-	if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+	if (m_SurfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
 
@@ -208,6 +150,71 @@ bool CSwapchainManager::recreateSwapchain() {
 							  nullptr);
 	}
 
+	return afterRcSwapchain();
+}
+
+bool CSwapchainManager::beforeRcSwapchain() {
+	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
+												  CSurfaceManager::getInstance().getSurfaceKHR(),
+												  &m_SurfaceCaps) != VK_SUCCESS)
+		return false;
+
+	// 选择缓冲个数
+	m_DesiredNumberOfSwapchainImages = m_SurfaceCaps.minImageCount + 1;
+	if ((m_SurfaceCaps.maxImageCount > 0) &&
+		(m_DesiredNumberOfSwapchainImages > m_SurfaceCaps.maxImageCount)) {
+		m_DesiredNumberOfSwapchainImages = m_SurfaceCaps.maxImageCount;
+	}
+
+	// 处理旋转，目前没有相关需求
+	if (m_SurfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+		// We prefer a non-rotated transform
+		m_PreTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+	} else {
+		m_PreTransform = m_SurfaceCaps.currentTransform;
+	}
+
+	// 处理混合方式
+	for (auto & compositeAlphaFlag : vec_ExpectCompositeAlphaFlags) {
+		if (m_SurfaceCaps.supportedCompositeAlpha & compositeAlphaFlag) {
+			m_CompositeAlpha = compositeAlphaFlag;
+			break;
+		};
+	}
+
+	uint32_t presentModeCount;
+	if (vkGetPhysicalDeviceSurfacePresentModesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
+												  CSurfaceManager::getInstance().getSurfaceKHR(),
+												  &presentModeCount, nullptr) == VK_SUCCESS)
+		return false;
+	if (presentModeCount <= 0)
+		return false;
+
+	std::vector<VkPresentModeKHR> vec_PresentModes(presentModeCount);
+	if (vkGetPhysicalDeviceSurfacePresentModesKHR(CDeviceManager::getInstance().getPhysicalDevice(),
+												  CSurfaceManager::getInstance().getSurfaceKHR(),
+												  &presentModeCount,
+												  vec_PresentModes.data()) != VK_SUCCESS)
+		return false;
+
+	// 默认垂直同步
+	for (size_t i = 0; i < presentModeCount; i++) {
+		// Mailbox：不撕裂，低延迟
+		if (vec_PresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+			m_SwapchainPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+			// 若找到，则直接使用 Mailbox
+			break;
+		}
+		// Immediate：可能存在撕裂，低延迟
+		if (vec_PresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+			m_SwapchainPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		}
+	}
+
+	return true;
+}
+
+bool CSwapchainManager::afterRcSwapchain() {
 	if (vkGetSwapchainImagesKHR(CDeviceManager::getInstance().getLogicalDevice(), m_SwapChain,
 								&m_ImageCount, nullptr) != VK_SUCCESS)
 		return false;
@@ -237,5 +244,8 @@ bool CSwapchainManager::recreateSwapchain() {
 								 &colorAttachmentView, nullptr, &vec_ImageView[i]) == VK_SUCCESS);
 	}
 
-	return vec_Image.size() == vec_ImageView.size();
+	if (vec_Image.empty() || (vec_Image.size() != vec_ImageView.size()))
+		return false;
+
+	return true;
 }
