@@ -11,7 +11,6 @@
 #include <set>
 #include <string>
 
-
 CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
 
 CDeviceManager & CDeviceManager::getInstance() {

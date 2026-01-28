@@ -213,6 +213,9 @@ bool CSwapchainManager::beforeRcSwapchain() {
 		}
 	}
 
+	if (!setSupportedDepthFormat(false))
+		return false;
+
 	return true;
 }
 
@@ -271,4 +274,96 @@ std::vector<VkCommandBuffer> CSwapchainManager::getCommandBuffer(const uint32_t 
 	}
 
 	return map_Index2VecCmdBuffer[queueIndex];
+}
+
+bool CSwapchainManager::setSupportedDepthFormat(const bool & requiresStencil) {
+	const std::vector<VkFormat> & vec_Format =
+		requiresStencil ? vec_DepthStencilFormat : vec_DepthFormat;
+
+	if (vec_Format.empty())
+		return false;
+
+	VkFormatProperties formatProps;
+	for (const auto & format : vec_Format) {
+		vkGetPhysicalDeviceFormatProperties(CDeviceManager::getInstance().getPhysicalDevice(),
+											format, &formatProps);
+		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+			m_DepthFormat = format;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool CSwapchainManager::setRenderPass() {
+	// 定义不同的缓存规格，和操作定义
+	std::vector<VkAttachmentDescription> attachments{
+		// Color attachment
+		VkAttachmentDescription{.format = m_SurfaceFormat.format,
+								.samples = VK_SAMPLE_COUNT_1_BIT,
+								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+								.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+								.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+								.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
+		// Depth attachment
+		VkAttachmentDescription{.format = m_DepthFormat,
+								.samples = VK_SAMPLE_COUNT_1_BIT,
+								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+								.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+								.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+								.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+
+	// 定义数组引用，attachment 表示下标
+	VkAttachmentReference colorReference{.attachment = 0,
+										 .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+	VkAttachmentReference depthReference{
+		.attachment = 1, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
+	VkSubpassDescription subpassDescription{
+		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &colorReference,
+		.pDepthStencilAttachment = &depthReference,
+	};
+
+	// Subpass dependencies for layout transitions
+	std::vector<VkSubpassDependency> dependencies{
+		VkSubpassDependency{
+			.srcSubpass = VK_SUBPASS_EXTERNAL,
+			.dstSubpass = 0,
+			.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+							VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+							VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+			.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+							 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+		},
+		VkSubpassDependency{
+			.srcSubpass = VK_SUBPASS_EXTERNAL,
+			.dstSubpass = 0,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcAccessMask = 0,
+			.dstAccessMask =
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+		}};
+
+	VkRenderPassCreateInfo renderPassInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		.attachmentCount = static_cast<uint32_t>(attachments.size()),
+		.pAttachments = attachments.data(),
+		.subpassCount = 1,
+		.pSubpasses = &subpassDescription,
+		.dependencyCount = static_cast<uint32_t>(dependencies.size()),
+		.pDependencies = dependencies.data(),
+	};
+
+	return (vkCreateRenderPass(CDeviceManager::getInstance().getLogicalDevice(), &renderPassInfo,
+							   nullptr, &m_RenderPass) != VK_SUCCESS);
 }

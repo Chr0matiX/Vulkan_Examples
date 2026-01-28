@@ -22,6 +22,7 @@ class CSwapchainManager {
 		static const std::vector<VkFormat> vec_ExpectPreferredImageFormats;
 
 		VkSurfaceFormatKHR m_SurfaceFormat;
+		VkFormat m_DepthFormat;
 
 		std::vector<VkSemaphore> vec_PresentCplSmph{
 			CVulkanManager::getInstance().getMaxConcurrentFrames()};
@@ -30,6 +31,16 @@ class CSwapchainManager {
 		std::vector<VkFence> vec_waitFence{CVulkanManager::getInstance().getMaxConcurrentFrames()};
 
 		uint32_t m_DesiredNumberOfSwapchainImages{0};
+
+		const std::vector<VkFormat> vec_DepthFormat{
+			VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+
+		const std::vector<VkFormat> vec_DepthStencilFormat{
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D16_UNORM_S8_UINT,
+		};
 
 		VkSurfaceCapabilitiesKHR m_SurfaceCaps;
 
@@ -41,6 +52,8 @@ class CSwapchainManager {
 
 		std::map<uint32_t, std::vector<VkCommandBuffer>> map_Index2VecCmdBuffer;
 
+		VkRenderPass m_RenderPass{VK_NULL_HANDLE};
+
 	private:
 		bool initManager();
 
@@ -49,6 +62,8 @@ class CSwapchainManager {
 		bool afterRcSwapchain();
 
 		std::vector<VkCommandBuffer> getCommandBuffer(const uint32_t & queueIndex);
+		bool setSupportedDepthFormat(const bool & requiresStencil);
+		bool setRenderPass();
 
 	public:
 		bool valid();
