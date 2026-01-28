@@ -4,6 +4,7 @@
 
 #include "Utils.hpp"
 #include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 
 #include <cstdint>
 #include <vector>
@@ -48,7 +49,8 @@ class CVulkanManager {
 		void destroyManager();
 
 		static CVulkanManager & getInstance();
-		inline HINSTANCE getAppInstance() const { return m_AppInctance; };
-		inline VkInstance getVkInstance() const { return m_VkInstance; };
-		inline uint32_t getMaxConcurrentFrames() { return m_MaxConcurrentFrames; };
+
+		inline HINSTANCE getAppInstance() const { return m_AppInctance; }
+		inline VkInstance getVkInstance() const { return m_VkInstance; }
+		inline uint32_t getMaxConcurrentFrames() { return m_MaxConcurrentFrames; }
 };

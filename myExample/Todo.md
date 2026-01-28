@@ -72,3 +72,5 @@
 	第二个问题内容稍多。我是否可以将 VkSwapchainKHR 视为一个重要的中间成员。
 	围绕着 VkSwapchainKHR ，在重新创建 VkSwapchainKHR 之前，我需要读取哪些可能已经被修改的数据？（比如 VkSurfaceCapabilitiesKHR等等？）
 	在重新创建 VkSwapchainKHR 之后，我需要继续重建什么资源？（比如 VkImage等等？）
+
+3. 我现在还缺少VkImage (Depth/Stencil): 深度缓冲， VkRenderPass， VkFramebuffer， VkPipeline， VkCommandBuffer

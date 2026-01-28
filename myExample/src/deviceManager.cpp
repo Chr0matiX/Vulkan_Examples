@@ -3,13 +3,14 @@
 #include "vulkan/vulkan_core.h"
 #include "vulkanManager.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <set>
 #include <string>
-#include <algorithm>
+
 
 CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
 
@@ -229,76 +230,6 @@ bool CDeviceManager::initManager() {
 				VK_SUCCESS)
 				continue;
 			map_Index2CommandPool[queueIndex] = vkCommandPool;
-		}
-
-		{
-			if (!map_Index2VkQueue.contains(m_QueueIndex.getGraphics())) {
-				VkQueue vkQueue;
-				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getGraphics(), 0, &vkQueue);
-				map_Index2VkQueue[m_QueueIndex.getGraphics()] = vkQueue;
-
-				VkCommandPoolCreateInfo commandPoolCI{
-					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-					.queueFamilyIndex = m_QueueIndex.getGraphics()};
-
-				VkCommandPool vkCommandPool;
-				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
-					VK_SUCCESS)
-					break;
-				map_Index2CommandPool[m_QueueIndex.getGraphics()] = vkCommandPool;
-			}
-
-			if (!map_Index2VkQueue.contains(m_QueueIndex.getPresent())) {
-				VkQueue vkQueue;
-				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getPresent(), 0, &vkQueue);
-				map_Index2VkQueue[m_QueueIndex.getPresent()] = vkQueue;
-
-				VkCommandPoolCreateInfo commandPoolCI{
-					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-					.queueFamilyIndex = m_QueueIndex.getPresent()};
-
-				VkCommandPool vkCommandPool;
-				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
-					VK_SUCCESS)
-					break;
-				map_Index2CommandPool[m_QueueIndex.getPresent()] = vkCommandPool;
-			}
-
-			if (!map_Index2VkQueue.contains(m_QueueIndex.getTransfer())) {
-				VkQueue vkQueue;
-				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getTransfer(), 0, &vkQueue);
-				map_Index2VkQueue[m_QueueIndex.getTransfer()] = vkQueue;
-
-				VkCommandPoolCreateInfo commandPoolCI{
-					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-					.queueFamilyIndex = m_QueueIndex.getTransfer()};
-
-				VkCommandPool vkCommandPool;
-				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
-					VK_SUCCESS)
-					break;
-				map_Index2CommandPool[m_QueueIndex.getTransfer()] = vkCommandPool;
-			}
-
-			if (!map_Index2VkQueue.contains(m_QueueIndex.getCompute())) {
-				VkQueue vkQueue;
-				vkGetDeviceQueue(m_LogicalDevice, m_QueueIndex.getCompute(), 0, &vkQueue);
-				map_Index2VkQueue[m_QueueIndex.getCompute()] = vkQueue;
-
-				VkCommandPoolCreateInfo commandPoolCI{
-					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-					.queueFamilyIndex = m_QueueIndex.getCompute()};
-
-				VkCommandPool vkCommandPool;
-				if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
-					VK_SUCCESS)
-					break;
-				map_Index2CommandPool[m_QueueIndex.getCompute()] = vkCommandPool;
-			}
 		}
 
 		if (!valid())

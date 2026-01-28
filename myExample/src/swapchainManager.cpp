@@ -32,30 +32,6 @@ bool CSwapchainManager::initManager() {
 	bool rtn = false;
 
 	do {
-		uint32_t surfaceFormatCount;
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												 CSurfaceManager::getInstance().getSurfaceKHR(),
-												 &surfaceFormatCount, NULL) != VK_SUCCESS)
-			break;
-		if (surfaceFormatCount <= 0)
-			break;
-
-		std::vector<VkSurfaceFormatKHR> vec_SurfaceFormats(surfaceFormatCount);
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												 CSurfaceManager::getInstance().getSurfaceKHR(),
-												 &surfaceFormatCount,
-												 vec_SurfaceFormats.data()) != VK_SUCCESS)
-			break;
-
-		m_SurfaceFormat = vec_SurfaceFormats[0];
-		for (auto & availableFormat : vec_SurfaceFormats) {
-			if (std::find(vec_ExpectPreferredImageFormats.begin(),
-						  vec_ExpectPreferredImageFormats.end(),
-						  availableFormat.format) != vec_ExpectPreferredImageFormats.end()) {
-				m_SurfaceFormat = availableFormat;
-				break;
-			}
-		}
 
 		VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 								  .flags = VK_FENCE_CREATE_SIGNALED_BIT};
@@ -74,9 +50,9 @@ bool CSwapchainManager::initManager() {
 				continue;
 		}
 
-		// 不在这里调用，可能更符合逻辑
-		// if (!recreateSwapchain())
-		//	break;
+		// 必须要初次创建一次
+		if (!recreateSwapchain())
+			break;
 
 		rtn = true;
 	} while (0);
@@ -85,7 +61,8 @@ bool CSwapchainManager::initManager() {
 }
 
 bool CSwapchainManager::valid() {
-	return (m_SwapchainManagerInstance != nullptr);
+	return (m_SwapchainManagerInstance != nullptr) && (m_SwapChain != VK_NULL_HANDLE) &&
+		   !vec_Image.empty() && (vec_Image.size() == vec_ImageView.size());
 }
 
 void CSwapchainManager::destroyManager() {
@@ -211,6 +188,31 @@ bool CSwapchainManager::beforeRcSwapchain() {
 		}
 	}
 
+	uint32_t surfaceFormatCount;
+	if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
+											 CSurfaceManager::getInstance().getSurfaceKHR(),
+											 &surfaceFormatCount, NULL) != VK_SUCCESS)
+		return false;
+	if (surfaceFormatCount <= 0)
+		return false;
+
+	std::vector<VkSurfaceFormatKHR> vec_SurfaceFormats(surfaceFormatCount);
+	if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
+											 CSurfaceManager::getInstance().getSurfaceKHR(),
+											 &surfaceFormatCount,
+											 vec_SurfaceFormats.data()) != VK_SUCCESS)
+		return false;
+
+	m_SurfaceFormat = vec_SurfaceFormats[0];
+	for (auto & availableFormat : vec_SurfaceFormats) {
+		if (std::find(vec_ExpectPreferredImageFormats.begin(),
+					  vec_ExpectPreferredImageFormats.end(),
+					  availableFormat.format) != vec_ExpectPreferredImageFormats.end()) {
+			m_SurfaceFormat = availableFormat;
+			break;
+		}
+	}
+
 	return true;
 }
 
@@ -248,4 +250,25 @@ bool CSwapchainManager::afterRcSwapchain() {
 		return false;
 
 	return true;
+}
+
+std::vector<VkCommandBuffer> CSwapchainManager::getCommandBuffer(const uint32_t & queueIndex) {
+	if (!map_Index2VecCmdBuffer.contains(queueIndex)) {
+		std::vector<VkCommandBuffer> vec_CommandBuffer{
+			CVulkanManager::getInstance().getMaxConcurrentFrames()};
+
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.commandPool = CDeviceManager::getInstance().getVkCommandPool(queueIndex),
+			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = static_cast<uint32_t>(vec_CommandBuffer.size()),
+		};
+		if (vkAllocateCommandBuffers(CDeviceManager::getInstance().getLogicalDevice(),
+									 &cmdBufAllocateInfo, vec_CommandBuffer.data()) != VK_SUCCESS)
+			return {};
+
+		map_Index2VecCmdBuffer[queueIndex] = vec_CommandBuffer;
+	}
+
+	return map_Index2VecCmdBuffer[queueIndex];
 }

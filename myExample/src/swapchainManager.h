@@ -2,6 +2,8 @@
 
 #include "vulkan/vulkan_core.h"
 #include "vulkanManager.h"
+#include <cstdint>
+#include <map>
 
 class CSwapchainManager {
 		SINGLETON_CLASS(CSwapchainManager)
@@ -37,12 +39,16 @@ class CSwapchainManager {
 
 		VkPresentModeKHR m_SwapchainPresentMode{VK_PRESENT_MODE_FIFO_KHR};
 
+		std::map<uint32_t, std::vector<VkCommandBuffer>> map_Index2VecCmdBuffer;
+
 	private:
 		bool initManager();
 
 		bool recreateSwapchain();
 		bool beforeRcSwapchain();
 		bool afterRcSwapchain();
+
+		std::vector<VkCommandBuffer> getCommandBuffer(const uint32_t & queueIndex);
 
 	public:
 		bool valid();

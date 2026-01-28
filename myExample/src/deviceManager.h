@@ -66,7 +66,7 @@ class CDeviceManager {
 					return m_Compute.value_or(m_Graphics.value());
 				}
 
-				inline std::set<uint32_t> getQueueIndexes() {
+				inline std::set<uint32_t> getQueueIndexes() const {
 					return std::set<uint32_t>{getGraphics(), getPresent(), getTransfer(),
 											  getCompute()};
 				}
@@ -83,6 +83,19 @@ class CDeviceManager {
 		void destroyManager();
 
 		static CDeviceManager & getInstance();
-		inline VkPhysicalDevice getPhysicalDevice() { return m_PhysicalDevice; };
-		inline VkDevice getLogicalDevice() { return m_LogicalDevice; };
+
+		inline VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
+		inline VkDevice getLogicalDevice() const { return m_LogicalDevice; }
+
+		inline std::set<uint32_t> getQueueIndexes() const { return m_QueueIndex.getQueueIndexes(); }
+		inline uint32_t getGraphicsQueueIndex() const { return m_QueueIndex.getGraphics(); }
+		inline uint32_t getPresentQueueIndex() const { return m_QueueIndex.getPresent(); }
+		inline uint32_t getTransferQueueIndex() const { return m_QueueIndex.getTransfer(); }
+		inline uint32_t getComputeQueueIndex() const { return m_QueueIndex.getCompute(); }
+		inline VkCommandPool getVkCommandPool(const uint32_t & queueIndex) const {
+			if (!map_Index2CommandPool.contains(queueIndex))
+				return VK_NULL_HANDLE;
+
+			return map_Index2CommandPool.at(queueIndex);
+		}
 };

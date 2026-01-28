@@ -28,5 +28,6 @@ class CSurfaceManager {
 		void destroyManager();
 
 		static CSurfaceManager & getInstance();
+		
 		inline VkSurfaceKHR getSurfaceKHR() const noexcept { return m_SurfaceKHR; }
 };
