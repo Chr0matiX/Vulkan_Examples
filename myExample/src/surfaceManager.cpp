@@ -106,12 +106,22 @@ bool CSurfaceManager::valid() {
 }
 
 void CSurfaceManager::destroyManager() {
-	if (m_SurfaceManagerInstance != nullptr)
-		delete m_SurfaceManagerInstance;
+	if (m_SurfaceKHR != VK_NULL_HANDLE) {
+		vkDestroySurfaceKHR(CVulkanManager::getInstance().getVkInstance(), m_SurfaceKHR, nullptr);
+		m_SurfaceKHR = VK_NULL_HANDLE;
+	}
 
-	vkDestroySurfaceKHR(CVulkanManager::getInstance().getVkInstance(), m_SurfaceKHR, nullptr);
-	DestroyWindow(m_WindowHandle);
+	if (m_WindowHandle != nullptr) {
+		DestroyWindow(m_WindowHandle);
+		m_WindowHandle = nullptr;
+	}
+
 	UnregisterClass(m_MainWindowsClassName, CVulkanManager::getInstance().getAppInstance());
+
+	if (m_SurfaceManagerInstance != nullptr) {
+		delete m_SurfaceManagerInstance;
+		m_SurfaceManagerInstance = nullptr;
+	}
 }
 
 LRESULT CSurfaceManager::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

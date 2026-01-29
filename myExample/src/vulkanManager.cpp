@@ -167,10 +167,17 @@ bool CVulkanManager::valid() {
 }
 
 void CVulkanManager::destroyManager() {
-	if (m_VkManagerInstance != nullptr)
-		delete m_VkManagerInstance;
-
-	CSurfaceManager::getInstance().destroyManager();
-	CDeviceManager::getInstance().destroyManager();
 	CSwapchainManager::getInstance().destroyManager();
+	CDeviceManager::getInstance().destroyManager();
+	CSurfaceManager::getInstance().destroyManager();
+
+	if (m_VkInstance != VK_NULL_HANDLE) {
+		vkDestroyInstance(m_VkInstance, nullptr);
+		m_VkInstance = VK_NULL_HANDLE;
+	}
+
+	if (m_VkManagerInstance != nullptr) {
+		delete m_VkManagerInstance;
+		m_VkManagerInstance = nullptr;
+	}
 }

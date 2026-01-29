@@ -73,4 +73,4 @@
 	围绕着 VkSwapchainKHR ，在重新创建 VkSwapchainKHR 之前，我需要读取哪些可能已经被修改的数据？（比如 VkSurfaceCapabilitiesKHR等等？）
 	在重新创建 VkSwapchainKHR 之后，我需要继续重建什么资源？（比如 VkImage等等？）
 
-3. 我现在还缺少VkImage (Depth/Stencil): 深度缓冲， VkRenderPass， VkFramebuffer， VkPipeline， VkCommandBuffer
+3. 我现在还缺少~~VkImage (Depth/Stencil): 深度缓冲~~， ~~VkRenderPass，~~ VkFramebuffer， VkPipeline， ~~VkCommandBuffer~~

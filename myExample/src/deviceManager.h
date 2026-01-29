@@ -3,6 +3,7 @@
 #include "vulkan/vulkan_core.h"
 #include "vulkanManager.h"
 #include <cstdarg>
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -98,4 +99,8 @@ class CDeviceManager {
 
 			return map_Index2CommandPool.at(queueIndex);
 		}
+
+		uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
+									const VkMemoryPropertyFlags & memPropertyFlags,
+									bool * memTypeFound = nullptr);
 };

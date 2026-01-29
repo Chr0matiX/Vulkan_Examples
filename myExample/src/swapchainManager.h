@@ -17,6 +17,10 @@ class CSwapchainManager {
 		std::vector<VkImage> vec_Image;
 		std::vector<VkImageView> vec_ImageView;
 
+		VkImage m_ImageDepthStencil;
+		VkImageView m_ImageViewDepthStencil;
+		VkDeviceMemory m_MemoryDepthStencil;
+
 		static const std::vector<VkCompositeAlphaFlagBitsKHR> vec_ExpectCompositeAlphaFlags;
 
 		static const std::vector<VkFormat> vec_ExpectPreferredImageFormats;
@@ -54,6 +58,11 @@ class CSwapchainManager {
 
 		VkRenderPass m_RenderPass{VK_NULL_HANDLE};
 
+		std::vector<VkFramebuffer> vec_FrameBuffer;
+
+		VkPipelineCache m_PipelineCache;
+		VkPipeline m_Pipeline;
+
 	private:
 		bool initManager();
 
@@ -64,6 +73,8 @@ class CSwapchainManager {
 		std::vector<VkCommandBuffer> getCommandBuffer(const uint32_t & queueIndex);
 		bool setSupportedDepthFormat(const bool & requiresStencil);
 		bool setRenderPass();
+
+		void cleanupSwapchainResources();
 
 	public:
 		bool valid();

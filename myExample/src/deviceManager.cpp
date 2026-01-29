@@ -246,11 +246,23 @@ bool CDeviceManager::valid() {
 }
 
 void CDeviceManager::destroyManager() {
-	if (m_DeviceManagerInstance != nullptr)
-		delete m_DeviceManagerInstance;
+	if (m_LogicalDevice != VK_NULL_HANDLE) {
+		for (auto & pair : map_Index2CommandPool) {
+			if (pair.second != VK_NULL_HANDLE) {
+				vkDestroyCommandPool(m_LogicalDevice, pair.second, nullptr);
+			}
+		}
+		map_Index2CommandPool.clear();
+		map_Index2VkQueue.clear();
 
-	if (m_LogicalDevice != VK_NULL_HANDLE)
 		vkDestroyDevice(m_LogicalDevice, nullptr);
+		m_LogicalDevice = VK_NULL_HANDLE;
+	}
+
+	if (m_DeviceManagerInstance != nullptr) {
+		delete m_DeviceManagerInstance;
+		m_DeviceManagerInstance = nullptr;
+	}
 }
 
 int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) {
@@ -352,4 +364,29 @@ int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) 
 		score += 100;
 
 	return score;
+}
+
+uint32_t CDeviceManager::getMemoryTypeIndex(const uint32_t & memTypeBits,
+											const VkMemoryPropertyFlags & memPropertyFlags,
+											bool * memTypeFound) {
+	uint32_t memTypeBitsClone = memTypeBits;
+	for (uint32_t i = 0; i < m_MemoryProperty.memoryTypeCount; i++) {
+		if ((memTypeBitsClone & 1) == 1) {
+			if ((m_MemoryProperty.memoryTypes[i].propertyFlags & memPropertyFlags) ==
+				memPropertyFlags) {
+				if (memTypeFound != nullptr) {
+					*memTypeFound = true;
+				}
+				return i;
+			}
+		}
+		memTypeBitsClone >>= 1;
+	}
+
+	if (memTypeFound) {
+		*memTypeFound = false;
+		return 0;
+	} else {
+		throw std::runtime_error("Could not find a matching memory type");
+	}
 }

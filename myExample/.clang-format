@@ -30,7 +30,8 @@ AlignConsecutiveAssignments: false
 # 连续声明对齐（根据专业偏好，通常建议保持 false 以维持简洁）
 AlignConsecutiveDeclarations: false
 # 括号内参数换行对齐
-#AlignAfterOpenBracket: Align
+#DontAlign
+AlignAfterOpenBracket: Align
 # 允许短函数放在同一行（如果你希望更紧凑，可以设为 InlineOnly 或 All）
 AllowShortFunctionsOnASingleLine: InlineOnly
 
@@ -44,22 +45,3 @@ AlwaysBreakAfterReturnType: None
 # Left: 续行符紧跟代码 (最利于观察每一行)
 # Right: 续行符对齐到最右侧 (最美观但可能导致大片空白)
 AlignEscapedNewlines: Left
-
-# 以下做存档
-#BasedOnStyle: LLVM
-#IndentWidth: 4
-#UseTab: Always
-#TabWidth: 4
-
-# 访问修饰符也按 4 列 Tab 缩进
-#AccessModifierOffset: -4				# 向左退 4 列（负数 = 与主体同级）
-#IndentAccessModifiers: false		# 允许 Tab 缩进 private:/public:
-
-# 命名空间配置 - 内部元素缩进一级
-#NamespaceIndentation: All
-
-# 强制关闭自动推导对齐方式，否则它会根据你代码中的既有风格自动改变
-#DerivePointerAlignment: false
-
-# 设置指针和引用的对齐方式为居中
-#PointerAlignment: Middle
