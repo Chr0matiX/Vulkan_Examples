@@ -76,3 +76,107 @@
 
 交换链的作用就是 **“缓冲/同步”**，协调这几个设备的运行节奏。
 
+# 依赖关系整理
+1. VkInstanceCreateInfo
+	- <- InstanceExtensions(实例扩展)
+	- <- VkApplicationInfo
+	- <- layer(层级)
+	- -> VkInstance
+2. VkPhysicalDevice
+	- -> VkPhysicalDeviceProperties
+	- -> VkPhysicalDeviceFeatures
+	- -> VkPhysicalDeviceMemoryProperties
+	- -> VkFormat(DepthFormat)
+3. VkDeviceQueueCreateInfo
+	- <- queueIndex <- VkQueueFlagBits
+4. VkDeviceCreateInfo
+	- <- VkDeviceQueueCreateInfo
+	- <- DeviceExtensions(设备扩展)
+	- <- VkPhysicalDeviceFeatures
+	- -> VkDevice
+5. VkCommandPoolCreateInfo
+	- <- VkCommandPoolCreateFlags
+	- <- queueIndex
+	- <- VkDevice
+	- -> VkCommandPool
+6. CreateWindowEx
+	- <- RECT(画布大小)
+	- <- HINSTANCE(应用实例)
+	- -> HWND
+7. VkWin32SurfaceCreateInfoKHR
+	- <- HINSTANCE
+	- <- HWND
+	- -> VkSurfaceKHR
+8. vkGetPhysicalDeviceSurfaceFormatsKHR
+	- <- VkPhysicalDevice
+	- <- VkSurfaceKHR
+	- -> VkSurfaceFormatKHR
+		- -> VkFormat(SurfaceFormat)
+		- -> VkColorSpaceKHR
+9. VkCommandPoolCreateInfo
+	- <- queueIndex
+	- -> VkCommandPool
+10. vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+	- <- VkPhysicalDevice
+	- <- VkSurfaceKHR
+	- -> VkSurfaceCapabilitiesKHR
+		- -> currentExtent
+			- -> width
+			- -> height
+		- -> minImageCount(缓冲个数)
+		- -> currentTransform(旋转)
+		- -> supportedCompositeAlpha(混合方式)
+11. vkGetPhysicalDeviceSurfacePresentModesKHR
+	- <- VkPhysicalDevice
+	- <- VkSurfaceKHR
+	- -> VkPresentModeKHR(垂直同步)
+12. VkSwapchainCreateInfoKHR
+	- <- VkSurfaceKHR
+	- <- VkSurfaceCapabilitiesKHR
+		- <- minImageCount
+		- <- currentExtent
+		- <- currentTransform
+		- <- supportedCompositeAlpha
+	- <- VkSurfaceFormatKHR
+		- <- VkFormat
+		- <- VkColorSpaceKHR
+	- <- VkPresentModeKHR
+	- <- oldSwapchain
+	- <- VkDevice
+	- -> VkSwapchainKHR
+13. vkGetSwapchainImagesKHR
+	- <- VkDevice
+	- <- VkSwapchainKHR
+	- -> VkImage
+14. vkCreateImageView
+	- <- VkImageViewCreateInfo
+		- <- VkImage
+		- <- VkFormat(SurfaceFormat)
+	- -> VkImageView
+15. VkCommandBufferAllocateInfo
+	- <- VkCommandPool
+	- <- VkDevice
+	- -> VkCommandBuffer
+16. VkFenceCreateInfo/VkSemaphoreCreateInfo
+	- <- device
+	- -> VkFence/VkSemaphore
+17. VkImageCreateInfo
+	- <- VkFormat(DepthFormat)
+	- <- currentExtent
+	- <- VkDevice
+	- -> VkImage(DepthStencil)
+18. vkGetImageMemoryRequirements
+    - <- VkDevice
+    - <- VkImage(DepthStencil)
+    - -> VkMemoryRequirements
+19. VkMemoryAllocateInfo
+	- <- VkMemoryRequirements
+	- <- memIndex <- VkPhysicalDeviceMemoryProperties
+	- <- VkDevice
+	- -> VkDeviceMemory(DepthStencil)
+20. vkBindImageMemory
+	- <- VkDevice
+	- <- VkImage(DepthStencil)
+	- <- VkDeviceMemory(DepthStencil)
+
+		

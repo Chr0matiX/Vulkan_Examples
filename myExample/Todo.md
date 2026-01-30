@@ -74,3 +74,28 @@
 	在重新创建 VkSwapchainKHR 之后，我需要继续重建什么资源？（比如 VkImage等等？）
 
 3. 我现在还缺少~~VkImage (Depth/Stencil): 深度缓冲~~， ~~VkRenderPass，~~ VkFramebuffer， VkPipeline， ~~VkCommandBuffer~~
+4. 重新总结
+
+	我们现在需要以各种 CreateInfo 为单位，对资源初始化的方式进行总结。
+	要求：
+	1. 严格要求列举顺序，体现出依赖关系
+	2. 若是一些枚举配置或简单的变量配置，则不需要列举出来（如VkInstanceCreateInfo需要VkApplicationInfo，而VkApplicationInfo内都是简单配置，所以VkApplicationInfo不需要单独列举出来，而VkInstanceCreateInfo需要表明需要VkApplicationInfo）
+	3. 有些CreateInfo需要其他CreateInfo的产物，如FrameBuffer需要renderPass，renderPass又是 VkRenderPassCreateInfo的产物，此时在列举时主要表明产物，后面括号中写上对应的CreateInfo，如 renderPass(VkRenderPassCreateInfo)
+	4. 列举参考例子项目为triangel.cpp，范围为 从创建 VkInstance 开始，到创建完成 pipeline为止
+
+	例子（不完善，仅供格式内容要求参考）：
+	1. VkWin32SurfaceCreateInfoKHR
+		1. VkInstance(VkInstanceCreateInfo)
+	2. VkDeviceCreateInfo
+		1. VkDeviceQueueCreateInfo
+	3. VkRenderPassCreateInfo
+      	1. VkAttachmentDescription
+      	2. VkSubpassDescription
+      	3. VkSubpassDependency
+      	4. VkDevice(VkDeviceCreateInfo)
+	4. VkFramebufferCreateInfo
+      	1. VkRenderPass(VkRenderPassCreateInfo)
+      	2. VkSurfaceCapabilitiesKHR
+      	3. VkDevice(VkDeviceCreateInfo)
+
+	类似于以上这种形式，理解我的意图，并为我整理。
