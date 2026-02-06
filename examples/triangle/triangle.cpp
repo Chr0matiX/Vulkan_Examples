@@ -236,12 +236,13 @@ public:
 		std::vector<Vertex> vertexBuffer{
 			{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
 			{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-			{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
+			{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+			{ {  -2.0f,  -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
 		};
 		uint32_t vertexBufferSize = static_cast<uint32_t>(vertexBuffer.size()) * sizeof(Vertex);
 
 		// Setup indices
-		std::vector<uint32_t> indexBuffer{ 0, 1, 2 };
+		std::vector<uint32_t> indexBuffer{ 0, 1, 2, 3 };
 		indices.count = static_cast<uint32_t>(indexBuffer.size());
 		uint32_t indexBufferSize = indices.count * sizeof(uint32_t);
 

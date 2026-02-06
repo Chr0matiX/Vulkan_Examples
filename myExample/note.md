@@ -178,5 +178,98 @@
 	- <- VkDevice
 	- <- VkImage(DepthStencil)
 	- <- VkDeviceMemory(DepthStencil)
-
-		
+21. VkRenderPassCreateInfo
+	- <- VkAttachmentDescription
+		- <- VkFormat(SurfaceFormat)
+		- <- VkFormat(DepthFormat)
+	- <- VkSubpassDescription
+		- <- VkAttachmentReference(SurfaceAttachmentIndex)
+		- <- VkAttachmentReference(DepthAttachmentIndex)
+	- <- VkSubpassDependency
+	- <- VkDevice
+	- -> VkRenderPass
+22. VkPipelineCacheCreateInfo
+	- <- VkDevice
+	- -> VkPipelineCache
+23. VkFramebufferCreateInfo
+	- <- VkImageView_Array
+		- <- VkImageView(SurfaceAttachment)
+		- <- VkImageView(DepthAttachment)
+	- <- VkDevice
+	- -> VkFramebuffer
+24. VkBufferCreateInfo
+	- <- BufferSize
+	- <- Usage
+	- <- VkDevice
+	- -> VkBuffer
+25. VkMemoryAllocateInfo
+	- <- VkMemoryRequirements <- VkBuffer
+	- <- VkDevice
+	- -> VkDeviceMemory
+26. VkCommandBufferAllocateInfo
+	- <- commandPool
+	- <- VkDevice
+	- -> VkCommandBuffer
+27. VkCommandBuffer(copyCmd)
+	- <- VkCommandBufferBeginInfo
+	- <- VkBufferCopy
+		- <- VkCommandBuffer
+		- <- BufferSize
+		- <- VkBuffer(Src)
+		- <- VkBuffer(Dst)
+	- <- vkEndCommandBuffer
+28. vkQueueSubmit
+	- <- VkSubmitInfo
+		- <- VkCommandBuffer
+	- <- VkFence <- VkFenceCreateInfo
+	- <- VkQueue
+29. vkWaitForFences
+	- <- VkDevice
+30. createUniformBuffers
+	- -> VkDeviceMemory
+	- -> VkBuffer
+    	- -> ShaderData
+    		- -> projectionMatrix
+    		- -> modelMatrix
+    		- -> viewMatrix
+31. VkDescriptorSetLayoutCreateInfo
+	- <- VkDescriptorSetLayoutBinding
+	- <- VkDevice
+	- -> VkDescriptorSetLayout
+32. VkDescriptorPoolCreateInfo
+	- <- VkDescriptorPoolSize
+	- <- VkDevice
+	- -> VkDescriptorPool
+33. VkDescriptorSetAllocateInfo
+	- <- VkDescriptorPool
+	- <- VkDescriptorSetLayout
+	- <- VkDevice
+	- -> VkDescriptorSet
+34. VkWriteDescriptorSet
+	- <- VkDescriptorBufferInfo <- ShaderData
+	- <- VkDescriptorSet
+	- <- VkDevice
+	- -> vkUpdateDescriptorSets
+35. VkPipelineLayoutCreateInfo
+	- <- VkDescriptorSetLayout
+	- <- VkDevice
+	- -> VkPipelineLayout
+36. VkGraphicsPipelineCreateInfo
+    - <- VkRenderPass
+    - <- VkPipelineLayout
+    - <- VkPipelineInputAssemblyStateCreateInfo
+    - <- VkPipelineRasterizationStateCreateInfo
+    - <- VkPipelineColorBlendStateCreateInfo
+		- <- VkPipelineColorBlendAttachmentState
+	- <- VkPipelineViewportStateCreateInfo
+	- <- VkPipelineDynamicStateCreateInfo
+		- <- VkDynamicState
+	- <- VkPipelineDepthStencilStateCreateInfo
+	- <- VkPipelineMultisampleStateCreateInfo
+	- <- VkPipelineVertexInputStateCreateInfo
+		- <- VkVertexInputBindingDescription
+		- <- VkVertexInputAttributeDescription
+	- <- VkPipelineShaderStageCreateInfo
+	- <- VkDevice
+	- -> VkPipeline
+37. 
