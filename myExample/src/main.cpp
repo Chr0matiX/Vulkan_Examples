@@ -1,7 +1,8 @@
-#include "vulkanManager.h"
+#include "VkContext.h"
+#include "vkContext.h"
 
 int main() {
-	if (!CVulkanManager::getInstance().valid())
+	if (!VkContext::getInstance().valid())
 		return 1;
 
 	return 0;

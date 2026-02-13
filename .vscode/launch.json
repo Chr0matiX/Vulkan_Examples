@@ -5,7 +5,7 @@
             "name": "Debug Vulkan Example",  
             "type": "cppdbg",  
             "request": "launch",  
-            "program": "${workspaceFolder}/build/bin/${input:exampleName}.exe",  
+            "program": "${workspaceFolder}\\build\\bin\\${input:exampleName}.exe",  
             "args": [],  
             "stopAtEntry": false,  
             "cwd": "${workspaceFolder}",  
@@ -18,7 +18,7 @@
             "externalConsole": false,  
             "MIMode": "gdb",  
             //"miDebuggerPath": "D:/AppUser/VSCode-Portable/tool_user/mingw64/bin/gdb.exe",  
-			"miDebuggerPath": "${env:DevTools}/mingw64/bin/gdb.exe",  
+			"miDebuggerPath": "${env:DevTools}mingw64\\bin\\gdb.exe",  
             "setupCommands": [  
                 {  
                     "description": "Enable pretty-printing for gdb",  

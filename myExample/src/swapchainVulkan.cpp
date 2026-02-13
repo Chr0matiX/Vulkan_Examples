@@ -1,61 +1,35 @@
-#include "swapchainManager.h"
-#include "deviceManager.h"
-#include "surfaceManager.h"
-#include "vulkan/vulkan_core.h"
-#include "vulkanManager.h"
+#include "swapchainVulkan.h"
+
 #include <algorithm>
 #include <cassert>
-#include <cstdint>
+#include <stdexcept>
 
-CSwapchainManager * CSwapchainManager::m_SwapchainManagerInstance{nullptr};
-
-const std::vector<VkCompositeAlphaFlagBitsKHR> CSwapchainManager::vec_ExpectCompositeAlphaFlags = {
-	VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,			// 不透明
-	VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,	// 预乘 Alpha
-	VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR, // 普通 Alpha
-	VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,			// 继承
-};
-
-const std::vector<VkFormat> CSwapchainManager::vec_ExpectPreferredImageFormats = {
-	VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32};
-
-CSwapchainManager & CSwapchainManager::getInstance() {
-	if (m_SwapchainManagerInstance == nullptr) {
-		m_SwapchainManagerInstance = new CSwapchainManager();
-		assert(m_SwapchainManagerInstance->initManager());
-	}
-
-	return *m_SwapchainManagerInstance;
-}
-
-bool CSwapchainManager::initManager() {
+bool SwapchainVulkan::initManager() {
 	bool rtn = false;
 
 	do {
 		// 同步机制
-		VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		/*VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 								  .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 		VkSemaphoreCreateInfo semaphoreCI{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		for (uint32_t i = 0; i < CVulkanManager::getInstance().getMaxConcurrentFrames(); ++i) {
-			if (vkCreateFence(CDeviceManager::getInstance().getLogicalDevice(), &fenceCI, nullptr,
-							  &vec_waitFence[i]) != VK_SUCCESS)
+		for (uint32_t i = 0; i < m_MaxConcurrentFrames; ++i) {
+			if (vkCreateFence(m_LogicalDevice, &fenceCI, nullptr, &vec_waitFence[i]) != VK_SUCCESS)
 				continue;
 
-			if (vkCreateSemaphore(CDeviceManager::getInstance().getLogicalDevice(), &semaphoreCI,
-								  nullptr, &vec_PresentCplSmph[i]) != VK_SUCCESS)
+			if (vkCreateSemaphore(m_LogicalDevice, &semaphoreCI, nullptr, &vec_PresentCplSmph[i]) !=
+				VK_SUCCESS)
 				continue;
 
-			if (vkCreateSemaphore(CDeviceManager::getInstance().getLogicalDevice(), &semaphoreCI,
-								  nullptr, &vec_RenderCplSmph[i]) != VK_SUCCESS)
+			if (vkCreateSemaphore(m_LogicalDevice, &semaphoreCI, nullptr, &vec_RenderCplSmph[i]) !=
+				VK_SUCCESS)
 				continue;
-		}
+		}*/
 
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo{
+		/*VkPipelineCacheCreateInfo pipelineCacheCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-		if (vkCreatePipelineCache(CDeviceManager::getInstance().getLogicalDevice(),
-								  &pipelineCacheCreateInfo, nullptr,
+		if (vkCreatePipelineCache(m_LogicalDevice, &pipelineCacheCreateInfo, nullptr,
 								  &m_PipelineCache) != VK_SUCCESS)
-			return false;
+			return false;*/
 
 		// 必须要初次创建一次
 		if (!recreateSwapchain())
@@ -67,82 +41,66 @@ bool CSwapchainManager::initManager() {
 	return rtn;
 }
 
-bool CSwapchainManager::valid() {
-	return (m_SwapchainManagerInstance != nullptr) && (m_SwapChain != VK_NULL_HANDLE) &&
-		   !vec_Image.empty() && (vec_Image.size() == vec_ImageView.size());
+bool SwapchainVulkan::valid() {
+	return (m_SwapChain != VK_NULL_HANDLE) && !vec_Image.empty() &&
+		   (vec_Image.size() == vec_ImageView.size());
 }
 
-void CSwapchainManager::destroyManager() {
-	vkDeviceWaitIdle(CDeviceManager::getInstance().getLogicalDevice());
+void SwapchainVulkan::destroyManager() {
+	vkDeviceWaitIdle(m_LogicalDevice);
 
-	if (m_Pipeline != VK_NULL_HANDLE) {
-		vkDestroyPipeline(CDeviceManager::getInstance().getLogicalDevice(), m_Pipeline, nullptr);
+	/* if (m_Pipeline != VK_NULL_HANDLE) {
+		vkDestroyPipeline(m_LogicalDevice, m_Pipeline, nullptr);
 	}
 	if (m_PipelineCache != VK_NULL_HANDLE) {
-		vkDestroyPipelineCache(CDeviceManager::getInstance().getLogicalDevice(), m_PipelineCache,
-							   nullptr);
-	}
+		vkDestroyPipelineCache(m_LogicalDevice, m_PipelineCache, nullptr);
+	} */
 
 	for (auto & framebuffer : vec_FrameBuffer) {
 		if (framebuffer != VK_NULL_HANDLE) {
-			vkDestroyFramebuffer(CDeviceManager::getInstance().getLogicalDevice(), framebuffer,
-								 nullptr);
+			vkDestroyFramebuffer(m_LogicalDevice, framebuffer, nullptr);
 		}
 	}
 	vec_FrameBuffer.clear();
 
 	if (m_RenderPass != VK_NULL_HANDLE) {
-		vkDestroyRenderPass(CDeviceManager::getInstance().getLogicalDevice(), m_RenderPass,
-							nullptr);
+		vkDestroyRenderPass(m_LogicalDevice, m_RenderPass, nullptr);
 	}
 
-	if (m_ImageViewDepthStencil != VK_NULL_HANDLE) {
-		vkDestroyImageView(CDeviceManager::getInstance().getLogicalDevice(),
-						   m_ImageViewDepthStencil, nullptr);
+	if (m_DepthStencilRes.m_ImageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(m_LogicalDevice, m_DepthStencilRes.m_ImageView, nullptr);
 	}
-	if (m_ImageDepthStencil != VK_NULL_HANDLE) {
-		vkDestroyImage(CDeviceManager::getInstance().getLogicalDevice(), m_ImageDepthStencil,
-					   nullptr);
+	if (m_DepthStencilRes.m_Image != VK_NULL_HANDLE) {
+		vkDestroyImage(m_LogicalDevice, m_DepthStencilRes.m_Image, nullptr);
 	}
-	if (m_MemoryDepthStencil != VK_NULL_HANDLE) {
-		vkFreeMemory(CDeviceManager::getInstance().getLogicalDevice(), m_MemoryDepthStencil,
-					 nullptr);
+	if (m_DepthStencilRes.m_Memory != VK_NULL_HANDLE) {
+		vkFreeMemory(m_LogicalDevice, m_DepthStencilRes.m_Memory, nullptr);
 	}
 
 	for (auto & imageView : vec_ImageView) {
 		if (imageView != VK_NULL_HANDLE) {
-			vkDestroyImageView(CDeviceManager::getInstance().getLogicalDevice(), imageView,
-							   nullptr);
+			vkDestroyImageView(m_LogicalDevice, imageView, nullptr);
 		}
 	}
 	vec_ImageView.clear();
 	vec_Image.clear();
 
-	for (uint32_t i = 0; i < CVulkanManager::getInstance().getMaxConcurrentFrames(); ++i) {
+	/* for (uint32_t i = 0; i < m_MaxConcurrentFrames; ++i) {
 		if (vec_PresentCplSmph[i] != VK_NULL_HANDLE)
-			vkDestroySemaphore(CDeviceManager::getInstance().getLogicalDevice(),
-							   vec_PresentCplSmph[i], nullptr);
+			vkDestroySemaphore(m_LogicalDevice, vec_PresentCplSmph[i], nullptr);
 		if (vec_RenderCplSmph[i] != VK_NULL_HANDLE)
-			vkDestroySemaphore(CDeviceManager::getInstance().getLogicalDevice(),
-							   vec_RenderCplSmph[i], nullptr);
+			vkDestroySemaphore(m_LogicalDevice, vec_RenderCplSmph[i], nullptr);
 		if (vec_waitFence[i] != VK_NULL_HANDLE)
-			vkDestroyFence(CDeviceManager::getInstance().getLogicalDevice(), vec_waitFence[i],
-						   nullptr);
-	}
+			vkDestroyFence(m_LogicalDevice, vec_waitFence[i], nullptr);
+	} */
 
 	if (m_SwapChain != VK_NULL_HANDLE) {
-		vkDestroySwapchainKHR(CDeviceManager::getInstance().getLogicalDevice(), m_SwapChain,
-							  nullptr);
-	}
-
-	if (m_SwapchainManagerInstance != nullptr) {
-		delete m_SwapchainManagerInstance;
-		m_SwapchainManagerInstance = nullptr;
+		vkDestroySwapchainKHR(m_LogicalDevice, m_SwapChain, nullptr);
 	}
 }
 
-bool CSwapchainManager::recreateSwapchain() {
-	vkDeviceWaitIdle(CDeviceManager::getInstance().getLogicalDevice());
+bool SwapchainVulkan::recreateSwapchain() {
+	vkDeviceWaitIdle(m_LogicalDevice);
 
 	if (!beforeRcSwapchain())
 		return false;
@@ -151,7 +109,7 @@ bool CSwapchainManager::recreateSwapchain() {
 
 	VkSwapchainCreateInfoKHR swapchainCI{
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-		.surface = CSurfaceManager::getInstance().getSurfaceKHR(),
+		.surface = m_SurfaceKHR,
 		.minImageCount = m_DesiredNumberOfSwapchainImages,
 		.imageFormat = m_SurfaceFormat.format,
 		.imageColorSpace = m_SurfaceFormat.colorSpace,
@@ -183,33 +141,29 @@ bool CSwapchainManager::recreateSwapchain() {
 		swapchainCI.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
 
-	if (vkCreateSwapchainKHR(CDeviceManager::getInstance().getLogicalDevice(), &swapchainCI,
-							 nullptr, &m_SwapChain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(m_LogicalDevice, &swapchainCI, nullptr, &m_SwapChain) != VK_SUCCESS)
 		return false;
 
 	// 创建完成后立即尝试回收
 	if (oldSwapchain != VK_NULL_HANDLE) {
 		for (auto i = 0; i < vec_ImageView.size(); i++) {
 			// 需要手动释放 VkImageView
-			vkDestroyImageView(CDeviceManager::getInstance().getLogicalDevice(), vec_ImageView[i],
-							   nullptr);
+			vkDestroyImageView(m_LogicalDevice, vec_ImageView[i], nullptr);
 		}
 		vec_ImageView.clear();
 
 		// VkImage 则由管理的 Swapchain 释放
 		// 此处还有延迟释放的规则，若其中的资源处于被使用的状态，那么会在使用完毕之后释放
-		vkDestroySwapchainKHR(CDeviceManager::getInstance().getLogicalDevice(), oldSwapchain,
-							  nullptr);
+		vkDestroySwapchainKHR(m_LogicalDevice, oldSwapchain, nullptr);
 	}
 
 	return afterRcSwapchain();
 }
 
-bool CSwapchainManager::beforeRcSwapchain() {
+bool SwapchainVulkan::beforeRcSwapchain() {
 	{
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-				CDeviceManager::getInstance().getPhysicalDevice(),
-				CSurfaceManager::getInstance().getSurfaceKHR(), &m_SurfaceCaps) != VK_SUCCESS)
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, m_SurfaceKHR,
+													  &m_SurfaceCaps) != VK_SUCCESS)
 			return false;
 
 		// 选择缓冲个数
@@ -239,19 +193,16 @@ bool CSwapchainManager::beforeRcSwapchain() {
 	// 显示模式
 	{
 		uint32_t presentModeCount;
-		if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-				CDeviceManager::getInstance().getPhysicalDevice(),
-				CSurfaceManager::getInstance().getSurfaceKHR(), &presentModeCount,
-				nullptr) != VK_SUCCESS)
+		if (vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_SurfaceKHR,
+													  &presentModeCount, nullptr) != VK_SUCCESS)
 			return false;
 		if (presentModeCount <= 0)
 			return false;
 
 		std::vector<VkPresentModeKHR> vec_PresentModes(presentModeCount);
-		if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-				CDeviceManager::getInstance().getPhysicalDevice(),
-				CSurfaceManager::getInstance().getSurfaceKHR(), &presentModeCount,
-				vec_PresentModes.data()) != VK_SUCCESS)
+		if (vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, m_SurfaceKHR,
+													  &presentModeCount,
+													  vec_PresentModes.data()) != VK_SUCCESS)
 			return false;
 
 		// 默认垂直同步
@@ -272,16 +223,14 @@ bool CSwapchainManager::beforeRcSwapchain() {
 	// m_SurfaceFormat
 	{
 		uint32_t surfaceFormatCount;
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												 CSurfaceManager::getInstance().getSurfaceKHR(),
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_SurfaceKHR,
 												 &surfaceFormatCount, NULL) != VK_SUCCESS)
 			return false;
 		if (surfaceFormatCount <= 0)
 			return false;
 
 		std::vector<VkSurfaceFormatKHR> vec_SurfaceFormats(surfaceFormatCount);
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(CDeviceManager::getInstance().getPhysicalDevice(),
-												 CSurfaceManager::getInstance().getSurfaceKHR(),
+		if (vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_SurfaceKHR,
 												 &surfaceFormatCount,
 												 vec_SurfaceFormats.data()) != VK_SUCCESS)
 			return false;
@@ -300,11 +249,11 @@ bool CSwapchainManager::beforeRcSwapchain() {
 	return true;
 }
 
-bool CSwapchainManager::afterRcSwapchain() {
+bool SwapchainVulkan::afterRcSwapchain() {
 	// 清理资源
-	cleanupSwapchainResources();
+	cleanupSwapchainRes();
 
-	// m_ImageViewDepthStencil
+	// m_DepthStencilRes.m_ImageView
 	{
 		if (!setSupportedDepthFormat(false))
 			return false;
@@ -312,7 +261,7 @@ bool CSwapchainManager::afterRcSwapchain() {
 		VkImageCreateInfo imageCI{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = VK_IMAGE_TYPE_2D,
-			.format = m_DepthFormat,
+			.format = m_DepthStencilRes.m_Format,
 			.extent = {m_SurfaceCaps.currentExtent.width, m_SurfaceCaps.currentExtent.height, 1},
 			.mipLevels = 1,
 			.arrayLayers = 1,
@@ -320,30 +269,29 @@ bool CSwapchainManager::afterRcSwapchain() {
 			.tiling = VK_IMAGE_TILING_OPTIMAL,
 			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT};
 
-		if (vkCreateImage(CDeviceManager::getInstance().getLogicalDevice(), &imageCI, nullptr,
-						  &m_ImageDepthStencil) != VK_SUCCESS)
+		if (vkCreateImage(m_LogicalDevice, &imageCI, nullptr, &m_DepthStencilRes.m_Image) !=
+			VK_SUCCESS)
 			return false;
 
 		VkMemoryRequirements memReqs{};
-		vkGetImageMemoryRequirements(CDeviceManager::getInstance().getLogicalDevice(),
-									 m_ImageDepthStencil, &memReqs);
+		vkGetImageMemoryRequirements(m_LogicalDevice, m_DepthStencilRes.m_Image, &memReqs);
 
 		VkMemoryAllocateInfo memAllloc{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memReqs.size,
-			.memoryTypeIndex = CDeviceManager::getInstance().getMemoryTypeIndex(
-				memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+			.memoryTypeIndex =
+				getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
 
-		if ((vkAllocateMemory(CDeviceManager::getInstance().getLogicalDevice(), &memAllloc, nullptr,
-							  &m_MemoryDepthStencil) != VK_SUCCESS) ||
-			(vkBindImageMemory(CDeviceManager::getInstance().getLogicalDevice(),
-							   m_ImageDepthStencil, m_MemoryDepthStencil, 0) != VK_SUCCESS))
+		if ((vkAllocateMemory(m_LogicalDevice, &memAllloc, nullptr, &m_DepthStencilRes.m_Memory) !=
+			 VK_SUCCESS) ||
+			(vkBindImageMemory(m_LogicalDevice, m_DepthStencilRes.m_Image,
+							   m_DepthStencilRes.m_Memory, 0) != VK_SUCCESS))
 			return false;
 
 		VkImageViewCreateInfo imageViewCI{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-										  .image = m_ImageDepthStencil,
+										  .image = m_DepthStencilRes.m_Image,
 										  .viewType = VK_IMAGE_VIEW_TYPE_2D,
-										  .format = m_DepthFormat,
+										  .format = m_DepthStencilRes.m_Format,
 										  .subresourceRange = {
 											  .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 											  .baseMipLevel = 0,
@@ -352,21 +300,20 @@ bool CSwapchainManager::afterRcSwapchain() {
 											  .layerCount = 1,
 										  }};
 
-		if (m_DepthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+		if (m_DepthStencilRes.m_Format >= VK_FORMAT_D16_UNORM_S8_UINT) {
 			imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
 
-		if (vkCreateImageView(CDeviceManager::getInstance().getLogicalDevice(), &imageViewCI,
-							  nullptr, &m_ImageViewDepthStencil) != VK_SUCCESS)
+		if (vkCreateImageView(m_LogicalDevice, &imageViewCI, nullptr,
+							  &m_DepthStencilRes.m_ImageView) != VK_SUCCESS)
 			return false;
 	}
 
-	if (vkGetSwapchainImagesKHR(CDeviceManager::getInstance().getLogicalDevice(), m_SwapChain,
-								&m_ImageCount, nullptr) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &m_ImageCount, nullptr) != VK_SUCCESS)
 		return false;
 	vec_Image.resize(m_ImageCount);
-	if (vkGetSwapchainImagesKHR(CDeviceManager::getInstance().getLogicalDevice(), m_SwapChain,
-								&m_ImageCount, vec_Image.data()) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &m_ImageCount, vec_Image.data()) !=
+		VK_SUCCESS)
 		return false;
 
 	vec_ImageView.resize(m_ImageCount);
@@ -385,8 +332,8 @@ bool CSwapchainManager::afterRcSwapchain() {
 								 .layerCount = 1},
 		};
 
-		assert(vkCreateImageView(CDeviceManager::getInstance().getLogicalDevice(),
-								 &colorAttachmentView, nullptr, &vec_ImageView[i]) == VK_SUCCESS);
+		assert(vkCreateImageView(m_LogicalDevice, &colorAttachmentView, nullptr,
+								 &vec_ImageView[i]) == VK_SUCCESS);
 	}
 
 	if (vec_Image.empty() || (vec_Image.size() != vec_ImageView.size()))
@@ -397,7 +344,7 @@ bool CSwapchainManager::afterRcSwapchain() {
 
 	vec_FrameBuffer.resize(m_ImageCount);
 	for (uint32_t i = 0; i < m_ImageCount; ++i) {
-		const VkImageView attachments[2] = {vec_ImageView[i], m_ImageViewDepthStencil};
+		const VkImageView attachments[2] = {vec_ImageView[i], m_DepthStencilRes.m_ImageView};
 		VkFramebufferCreateInfo frameBufferCI{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 											  .renderPass = m_RenderPass,
 											  .attachmentCount = 2,
@@ -405,8 +352,8 @@ bool CSwapchainManager::afterRcSwapchain() {
 											  .width = m_SurfaceCaps.currentExtent.width,
 											  .height = m_SurfaceCaps.currentExtent.height,
 											  .layers = 1};
-		if (vkCreateFramebuffer(CDeviceManager::getInstance().getLogicalDevice(), &frameBufferCI,
-								nullptr, &vec_FrameBuffer[i]) != VK_SUCCESS)
+		if (vkCreateFramebuffer(m_LogicalDevice, &frameBufferCI, nullptr, &vec_FrameBuffer[i]) !=
+			VK_SUCCESS)
 			continue;
 	}
 	if (vec_FrameBuffer.size() != m_ImageCount)
@@ -415,10 +362,9 @@ bool CSwapchainManager::afterRcSwapchain() {
 	return true;
 }
 
-std::vector<VkCommandBuffer> CSwapchainManager::getCommandBuffer(const uint32_t & queueIndex) {
+/* std::vector<VkCommandBuffer> SwapchainVulkan::getCommandBuffer(const uint32_t & queueIndex) {
 	if (!map_Index2VecCmdBuffer.contains(queueIndex)) {
-		std::vector<VkCommandBuffer> vec_CommandBuffer{
-			CVulkanManager::getInstance().getMaxConcurrentFrames()};
+		std::vector<VkCommandBuffer> vec_CommandBuffer{m_MaxConcurrentFrames};
 
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -426,17 +372,17 @@ std::vector<VkCommandBuffer> CSwapchainManager::getCommandBuffer(const uint32_t 
 			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			.commandBufferCount = static_cast<uint32_t>(vec_CommandBuffer.size()),
 		};
-		if (vkAllocateCommandBuffers(CDeviceManager::getInstance().getLogicalDevice(),
-									 &cmdBufAllocateInfo, vec_CommandBuffer.data()) != VK_SUCCESS)
+		if (vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufAllocateInfo,
+									 vec_CommandBuffer.data()) != VK_SUCCESS)
 			return {};
 
 		map_Index2VecCmdBuffer[queueIndex] = vec_CommandBuffer;
 	}
 
 	return map_Index2VecCmdBuffer[queueIndex];
-}
+} */
 
-bool CSwapchainManager::setSupportedDepthFormat(const bool & requiresStencil) {
+bool SwapchainVulkan::setSupportedDepthFormat(const bool & requiresStencil) {
 	const std::vector<VkFormat> & vec_Format =
 		requiresStencil ? vec_DepthStencilFormat : vec_DepthFormat;
 
@@ -445,10 +391,9 @@ bool CSwapchainManager::setSupportedDepthFormat(const bool & requiresStencil) {
 
 	VkFormatProperties formatProps;
 	for (const auto & format : vec_Format) {
-		vkGetPhysicalDeviceFormatProperties(CDeviceManager::getInstance().getPhysicalDevice(),
-											format, &formatProps);
+		vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, format, &formatProps);
 		if (formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-			m_DepthFormat = format;
+			m_DepthStencilRes.m_Format = format;
 			return true;
 		}
 	}
@@ -456,7 +401,7 @@ bool CSwapchainManager::setSupportedDepthFormat(const bool & requiresStencil) {
 	return false;
 }
 
-bool CSwapchainManager::setRenderPass() {
+bool SwapchainVulkan::setRenderPass() {
 	// 定义不同的缓存规格，和操作定义
 	std::vector<VkAttachmentDescription> attachments{
 		// Color attachment
@@ -469,7 +414,7 @@ bool CSwapchainManager::setRenderPass() {
 								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 								.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
 		// Depth attachment
-		VkAttachmentDescription{.format = m_DepthFormat,
+		VkAttachmentDescription{.format = m_DepthStencilRes.m_Format,
 								.samples = VK_SAMPLE_COUNT_1_BIT,
 								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -524,12 +469,12 @@ bool CSwapchainManager::setRenderPass() {
 		.pDependencies = dependencies.data(),
 	};
 
-	return (vkCreateRenderPass(CDeviceManager::getInstance().getLogicalDevice(), &renderPassInfo,
-							   nullptr, &m_RenderPass) == VK_SUCCESS);
+	return (vkCreateRenderPass(m_LogicalDevice, &renderPassInfo, nullptr, &m_RenderPass) ==
+			VK_SUCCESS);
 }
 
-void CSwapchainManager::cleanupSwapchainResources() {
-	VkDevice device = CDeviceManager::getInstance().getLogicalDevice();
+void SwapchainVulkan::cleanupSwapchainRes() {
+	VkDevice device = m_LogicalDevice;
 
 	for (auto & fb : vec_FrameBuffer) {
 		if (fb != VK_NULL_HANDLE)
@@ -537,21 +482,46 @@ void CSwapchainManager::cleanupSwapchainResources() {
 	}
 	vec_FrameBuffer.clear();
 
-	if (m_ImageViewDepthStencil != VK_NULL_HANDLE) {
-		vkDestroyImageView(device, m_ImageViewDepthStencil, nullptr);
-		m_ImageViewDepthStencil = VK_NULL_HANDLE;
+	if (m_DepthStencilRes.m_ImageView != VK_NULL_HANDLE) {
+		vkDestroyImageView(device, m_DepthStencilRes.m_ImageView, nullptr);
+		m_DepthStencilRes.m_ImageView = VK_NULL_HANDLE;
 	}
-	if (m_ImageDepthStencil != VK_NULL_HANDLE) {
-		vkDestroyImage(device, m_ImageDepthStencil, nullptr);
-		m_ImageDepthStencil = VK_NULL_HANDLE;
+	if (m_DepthStencilRes.m_Image != VK_NULL_HANDLE) {
+		vkDestroyImage(device, m_DepthStencilRes.m_Image, nullptr);
+		m_DepthStencilRes.m_Image = VK_NULL_HANDLE;
 	}
-	if (m_MemoryDepthStencil != VK_NULL_HANDLE) {
-		vkFreeMemory(device, m_MemoryDepthStencil, nullptr);
-		m_MemoryDepthStencil = VK_NULL_HANDLE;
+	if (m_DepthStencilRes.m_Memory != VK_NULL_HANDLE) {
+		vkFreeMemory(device, m_DepthStencilRes.m_Memory, nullptr);
+		m_DepthStencilRes.m_Memory = VK_NULL_HANDLE;
 	}
 
 	// for (auto & view : vec_ImageView) {
 	//	if (view != VK_NULL_HANDLE)
 	//		vkDestroyImageView(device, view, nullptr);
 	// }
+}
+
+uint32_t SwapchainVulkan::getMemoryTypeIndex(const uint32_t & memTypeBits,
+											 const VkMemoryPropertyFlags & memPropertyFlags,
+											 bool * memTypeFound) {
+	uint32_t memTypeBitsClone = memTypeBits;
+	for (uint32_t i = 0; i < m_MemoryProperty.memoryTypeCount; i++) {
+		if ((memTypeBitsClone & 1) == 1) {
+			if ((m_MemoryProperty.memoryTypes[i].propertyFlags & memPropertyFlags) ==
+				memPropertyFlags) {
+				if (memTypeFound != nullptr) {
+					*memTypeFound = true;
+				}
+				return i;
+			}
+		}
+		memTypeBitsClone >>= 1;
+	}
+
+	if (memTypeFound) {
+		*memTypeFound = false;
+		return 0;
+	} else {
+		throw std::runtime_error("Could not find a matching memory type");
+	}
 }

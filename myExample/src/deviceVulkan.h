@@ -1,20 +1,37 @@
 #pragma once
 
+#include "Utils.hpp"
+
+#include "vulkan/vulkan.h"
 #include "vulkan/vulkan_core.h"
-#include "vulkanManager.h"
-#include <cstdarg>
-#include <cstddef>
+
 #include <cstdint>
 #include <map>
 #include <optional>
 #include <set>
+#include <vector>
 
-class CDeviceManager {
-		SINGLETON_CLASS(CDeviceManager)
+class DeviceVulkan {
+		SINGLETON_CLASS(DeviceVulkan)
+		friend class VkContext;
 
 	private:
-		static CDeviceManager * m_DeviceManagerInstance;
+		/**********************************************************
+		外部依赖
+		**********************************************************/
+		VkInstance m_VkInstance{VK_NULL_HANDLE};
 
+		VkSurfaceKHR m_SurfaceKHR{VK_NULL_HANDLE};
+
+		std::vector<const char *> vec_ExpectDeviceExtension;
+
+		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures;
+
+		float m_DefaultQueuePriority{0.f};
+
+		/**********************************************************
+		资源
+		**********************************************************/
 		VkPhysicalDevice m_PhysicalDevice{VK_NULL_HANDLE};
 
 		VkDevice m_LogicalDevice{VK_NULL_HANDLE};
@@ -25,17 +42,9 @@ class CDeviceManager {
 
 		VkPhysicalDeviceMemoryProperties m_MemoryProperty;
 
-		const VkQueueFlags m_QueueFlags{VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT |
-										VK_QUEUE_COMPUTE_BIT};
-
-		const std::vector<const char *> vec_ExpectDeviceExtension{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures{};
-
-		const float m_DefaultQueuePriority{0.f};
-
 		std::map<uint32_t, VkQueue> map_Index2VkQueue;
-		std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
+
+		// std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
 
 		struct {
 			private:
@@ -76,31 +85,30 @@ class CDeviceManager {
 	private:
 		bool initManager();
 
+		bool valid();
+
+		void destroyManager();
+
 		// 此处还需要为整体配置联动，这里写的太简陋了
 		int ratePhysicalDevice(const VkPhysicalDevice & physicalDevice);
 
-	public:
-		bool valid();
-		void destroyManager();
+		//static DeviceVulkan & getInstance();
 
-		static CDeviceManager & getInstance();
+		//inline VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
 
-		inline VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
-		inline VkDevice getLogicalDevice() const { return m_LogicalDevice; }
+		//inline VkDevice getLogicalDevice() const { return m_LogicalDevice; }
 
 		inline std::set<uint32_t> getQueueIndexes() const { return m_QueueIndex.getQueueIndexes(); }
-		inline uint32_t getGraphicsQueueIndex() const { return m_QueueIndex.getGraphics(); }
-		inline uint32_t getPresentQueueIndex() const { return m_QueueIndex.getPresent(); }
-		inline uint32_t getTransferQueueIndex() const { return m_QueueIndex.getTransfer(); }
-		inline uint32_t getComputeQueueIndex() const { return m_QueueIndex.getCompute(); }
-		inline VkCommandPool getVkCommandPool(const uint32_t & queueIndex) const {
-			if (!map_Index2CommandPool.contains(queueIndex))
-				return VK_NULL_HANDLE;
 
-			return map_Index2CommandPool.at(queueIndex);
-		}
+		//inline uint32_t getGraphicsQueueIndex() const { return m_QueueIndex.getGraphics(); }
 
-		uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
-									const VkMemoryPropertyFlags & memPropertyFlags,
-									bool * memTypeFound = nullptr);
+		//inline uint32_t getPresentQueueIndex() const { return m_QueueIndex.getPresent(); }
+
+		//inline uint32_t getTransferQueueIndex() const { return m_QueueIndex.getTransfer(); }
+
+		//inline uint32_t getComputeQueueIndex() const { return m_QueueIndex.getCompute(); }
+
+		VkQueue getVkQueue(const uint32_t & queueIndex);
+
+		
 };

@@ -1,44 +1,27 @@
-#include "deviceManager.h"
-#include "surfaceManager.h"
+#include "deviceVulkan.h"
 #include "vulkan/vulkan_core.h"
-#include "vulkanManager.h"
 
 #include <algorithm>
 #include <cassert>
-#include <cstdint>
-#include <cstring>
 #include <iostream>
 #include <set>
-#include <string>
 
-CDeviceManager * CDeviceManager::m_DeviceManagerInstance{nullptr};
-
-CDeviceManager & CDeviceManager::getInstance() {
-	if (m_DeviceManagerInstance == nullptr) {
-		m_DeviceManagerInstance = new CDeviceManager();
-		assert(m_DeviceManagerInstance->initManager());
-	}
-
-	return *m_DeviceManagerInstance;
-}
-
-bool CDeviceManager::initManager() {
+bool DeviceVulkan::initManager() {
 	bool rtn = false;
 
 	do {
 		VkDeviceCreateInfo deviceCI{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
 		uint32_t gpuCount{0};
-		vkEnumeratePhysicalDevices(CVulkanManager::getInstance().getVkInstance(), &gpuCount,
-								   nullptr);
+		vkEnumeratePhysicalDevices(m_VkInstance, &gpuCount, nullptr);
 		if (gpuCount <= 0) {
 			std::cerr << "gpuCount is zero!\n";
 			break;
 		}
 
 		std::vector<VkPhysicalDevice> vec_PhysicalDevice(gpuCount);
-		if (vkEnumeratePhysicalDevices(CVulkanManager::getInstance().getVkInstance(), &gpuCount,
-									   vec_PhysicalDevice.data()) != VK_SUCCESS) {
+		if (vkEnumeratePhysicalDevices(m_VkInstance, &gpuCount, vec_PhysicalDevice.data()) !=
+			VK_SUCCESS) {
 			std::cerr << "vkEnumeratePhysicalDevices failed!\n";
 			break;
 		}
@@ -87,9 +70,8 @@ bool CDeviceManager::initManager() {
 
 				VkBool32 presentSupport{0};
 				if ((queueFlags & VK_QUEUE_GRAPHICS_BIT) || !hasPresentQ)
-					vkGetPhysicalDeviceSurfaceSupportKHR(
-						m_PhysicalDevice, queuePropertyIndex,
-						CSurfaceManager::getInstance().getSurfaceKHR(), &presentSupport);
+					vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDevice, queuePropertyIndex,
+														 m_SurfaceKHR, &presentSupport);
 
 				if (queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 					graphicsQS = 1;
@@ -216,7 +198,7 @@ bool CDeviceManager::initManager() {
 			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		};
 
-		for (const auto & queueIndex : set_QueueIndexes) {
+		/*for (const auto & queueIndex : set_QueueIndexes) {
 			if (map_Index2VkQueue.contains(queueIndex))
 				continue;
 
@@ -229,7 +211,7 @@ bool CDeviceManager::initManager() {
 				VK_SUCCESS)
 				continue;
 			map_Index2CommandPool[queueIndex] = vkCommandPool;
-		}
+		}*/
 
 		if (!valid())
 			break;
@@ -240,32 +222,21 @@ bool CDeviceManager::initManager() {
 	return rtn;
 }
 
-bool CDeviceManager::valid() {
+bool DeviceVulkan::valid() {
 	return (m_PhysicalDevice != VK_NULL_HANDLE) && (m_LogicalDevice != VK_NULL_HANDLE) &&
-		   m_QueueIndex.valid() && !map_Index2VkQueue.empty() && !map_Index2CommandPool.empty();
+		   m_QueueIndex.valid();
 }
 
-void CDeviceManager::destroyManager() {
+void DeviceVulkan::destroyManager() {
 	if (m_LogicalDevice != VK_NULL_HANDLE) {
-		for (auto & pair : map_Index2CommandPool) {
-			if (pair.second != VK_NULL_HANDLE) {
-				vkDestroyCommandPool(m_LogicalDevice, pair.second, nullptr);
-			}
-		}
-		map_Index2CommandPool.clear();
 		map_Index2VkQueue.clear();
 
 		vkDestroyDevice(m_LogicalDevice, nullptr);
 		m_LogicalDevice = VK_NULL_HANDLE;
 	}
-
-	if (m_DeviceManagerInstance != nullptr) {
-		delete m_DeviceManagerInstance;
-		m_DeviceManagerInstance = nullptr;
-	}
 }
 
-int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) {
+int DeviceVulkan::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) {
 
 	// if (!checkDeviceExtensionSupport(physicalDevice))
 	//	return -1;
@@ -292,8 +263,7 @@ int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) 
 			if (!presentFamily) {
 				VkBool32 presentSupport{0};
 				vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, queuePropertyIndex,
-													 CSurfaceManager::getInstance().getSurfaceKHR(),
-													 &presentSupport);
+													 m_SurfaceKHR, &presentSupport);
 				if (presentSupport)
 					presentFamily = true;
 			}
@@ -366,27 +336,15 @@ int CDeviceManager::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) 
 	return score;
 }
 
-uint32_t CDeviceManager::getMemoryTypeIndex(const uint32_t & memTypeBits,
-											const VkMemoryPropertyFlags & memPropertyFlags,
-											bool * memTypeFound) {
-	uint32_t memTypeBitsClone = memTypeBits;
-	for (uint32_t i = 0; i < m_MemoryProperty.memoryTypeCount; i++) {
-		if ((memTypeBitsClone & 1) == 1) {
-			if ((m_MemoryProperty.memoryTypes[i].propertyFlags & memPropertyFlags) ==
-				memPropertyFlags) {
-				if (memTypeFound != nullptr) {
-					*memTypeFound = true;
-				}
-				return i;
-			}
-		}
-		memTypeBitsClone >>= 1;
+
+
+VkQueue DeviceVulkan::getVkQueue(const uint32_t & queueIndex) {
+	if (!map_Index2VkQueue.contains(queueIndex)) {
+		VkQueue vkQueue;
+		vkGetDeviceQueue(m_LogicalDevice, queueIndex, 0, &vkQueue);
+		map_Index2VkQueue[queueIndex] = vkQueue;
+		return vkQueue;
 	}
 
-	if (memTypeFound) {
-		*memTypeFound = false;
-		return 0;
-	} else {
-		throw std::runtime_error("Could not find a matching memory type");
-	}
+	return map_Index2VkQueue.at(queueIndex);
 }

@@ -272,4 +272,310 @@
 	- <- VkPipelineShaderStageCreateInfo
 	- <- VkDevice
 	- -> VkPipeline
-37. 
+
+## AI输出内容
+
+### 第一部分：初始化流程 (Initialization)
+
+#### 1. 实例与设备层 (Instance & Device)
+
+1. **VkInstanceCreateInfo**
+* `<-` VkApplicationInfo (应用名称/版本)
+* `<-` InstanceExtensions (扩展：Surface, Win32Surface, DebugUtils)
+* `<-` LayerNames (验证层：StandardValidation)
+* `->` **VkInstance**
+
+
+2. **VkPhysicalDevice** (由 Instance 枚举选择)
+* `->` VkPhysicalDeviceProperties (设备属性：名称, 类型, Limits)
+* `->` VkPhysicalDeviceFeatures (设备特性：GeometryShader, MultiViewport 等)
+* `->` VkPhysicalDeviceMemoryProperties (内存堆与类型)
+* `->` VkFormatProperties (检查 Tiling 特性和 Format 支持)
+* `->` **queueFamilyIndex** (找到支持 Graphics 和 Present 的队列族)
+
+
+3. **VkDeviceCreateInfo** (逻辑设备)
+* `<-` VkDeviceQueueCreateInfo `<-` queueFamilyIndex
+* `<-` VkPhysicalDeviceFeatures (启用的特性)
+* `<-` DeviceExtensions (设备扩展：Swapchain)
+* `->` **VkDevice**
+* `->` **VkQueue** (获取设备队列句柄)
+
+
+4. **VkCommandPoolCreateInfo**
+* `<-` queueFamilyIndex
+* `<-` VkCommandPoolCreateFlags (ResetCommandBuffer)
+* `<-` VkDevice
+* `->` **VkCommandPool**
+
+
+
+#### 2. 表面与交换链 (Surface & Swapchain)
+
+5. **Window Surface**
+* `<-` CreateWindowEx `->` HWND, HINSTANCE
+* `<-` VkWin32SurfaceCreateInfoKHR `<-` HWND, HINSTANCE
+* `->` **VkSurfaceKHR**
+
+
+6. **Swapchain Support Queries** (协商阶段)
+* `vkGetPhysicalDeviceSurfaceCapabilitiesKHR` `->` **VkSurfaceCapabilitiesKHR** (min/maxImageCount, currentExtent, transform)
+* `vkGetPhysicalDeviceSurfaceFormatsKHR` `->` **VkSurfaceFormatKHR** (ColorSpace, Format)
+* `vkGetPhysicalDeviceSurfacePresentModesKHR` `->` **VkPresentModeKHR** (Mailbox/Fifo)
+
+
+7. **VkSwapchainCreateInfoKHR**
+* `<-` VkSurfaceKHR
+* `<-` minImageCount, imageExtent, preTransform (来自 Capabilities)
+* `<-` imageFormat, imageColorSpace (来自 SurfaceFormat)
+* `<-` imageUsage (ColorAttachment)
+* `<-` VkPresentModeKHR
+* `<-` oldSwapchain (用于窗口缩放重建)
+* `<-` VkDevice
+* `->` **VkSwapchainKHR**
+* `->` `vkGetSwapchainImagesKHR` `->` **VkImage[]** (Swapchain Images)
+
+
+8. **VkImageViewCreateInfo** (为 Swapchain Images 创建视图)
+* `<-` VkImage (Swapchain Image [i])
+* `<-` VkFormat (SurfaceFormat)
+* `<-` VkComponentMapping
+* `<-` VkImageSubresourceRange (Aspect: Color)
+* `->` **VkImageView[]** (Swapchain ImageViews)
+
+
+
+#### 3. 深度缓冲区资源 (Depth Buffer Resources)
+
+9. **VkImageCreateInfo** (深度图)
+* `<-` VkFormat (DepthFormat, e.g., D24_S8)
+* `<-` VkExtent3D (Width, Height)
+* `<-` VkImageUsageFlags (DepthStencilAttachment)
+* `<-` VkDevice
+* `->` **VkImage** (Depth Image)
+
+
+10. **Memory Allocation (Depth)**
+* `vkGetImageMemoryRequirements` `<-` VkImage (Depth) `->` VkMemoryRequirements
+* `VkMemoryAllocateInfo` `<-` MemoryRequirements
+* `VkMemoryAllocateInfo` `<-` memoryTypeIndex (DeviceLocal)
+* `->` **VkDeviceMemory** (Depth Memory)
+* `vkBindImageMemory` `<-` VkImage, VkDeviceMemory
+
+
+11. **VkImageViewCreateInfo** (深度视图) **[补充]**
+* `<-` VkImage (Depth Image)
+* `<-` VkFormat (DepthFormat)
+* `<-` VkImageSubresourceRange (Aspect: Depth | Stencil)
+* `->` **VkImageView** (Depth ImageView)
+
+
+
+#### 4. 渲染流程与帧缓冲 (Pass & Framebuffers)
+
+12. **VkRenderPassCreateInfo**
+* `<-` VkAttachmentDescription[0] (Color: LoadOp=Clear, StoreOp=Store, FinalLayout=PresentSrc)
+* `<-` VkAttachmentDescription[1] (Depth: LoadOp=Clear, StoreOp=DontCare, FinalLayout=DepthStencilAtt)
+* `<-` VkSubpassDescription (引用 AttachmentRef)
+* `<-` VkSubpassDependency (外部依赖同步)
+* `->` **VkRenderPass**
+
+
+13. **VkFramebufferCreateInfo** (创建 N 个，对应 Swapchain Image 数量)
+* `<-` VkRenderPass (兼容性句柄)
+* `<-` VkImageView_Array
+* `<-` VkImageView (Swapchain Color Attachment [i])
+* `<-` VkImageView (Depth Attachment)
+
+
+* `<-` Width, Height
+* `->` **VkFramebuffer[]**
+
+
+
+#### 5. 几何数据缓冲 (Vertex & Index Buffers)
+
+14. **Staging Buffer Flow** (暂存缓冲流程 - 通常做法)
+* `VkBufferCreateInfo` (Usage: TransferSrc) `->` StagingBuffer
+* `vkMapMemory` `->` `memcpy` (CPU data) `->` `vkUnmapMemory`
+* `VkBufferCreateInfo` (Usage: TransferDst | VertexBuffer) `->` **VkBuffer** (GPU VertexBuffer)
+* `VkCommandBufferAllocateInfo` `->` TempCommandBuffer
+* `vkBeginCommandBuffer`
+* `vkCmdCopyBuffer` `<-` StagingBuffer, VertexBuffer
+
+
+* `vkEndCommandBuffer` `->` `vkQueueSubmit` `->` `vkQueueWaitIdle`
+
+
+
+#### 6. 描述符与 Uniform (Descriptors & Uniforms)
+
+15. **Uniform Buffers** (多帧缓冲)
+* `VkBufferCreateInfo` (Usage: UniformBuffer) `->` **VkBuffer[]**
+* `VkMemoryAllocateInfo` (HostVisible | HostCoherent) `->` **VkDeviceMemory[]**
+* `vkMapMemory` `->` **mapped pointer[]** (持久化映射)
+
+
+16. **VkDescriptorSetLayoutCreateInfo** (定义布局)
+* `<-` VkDescriptorSetLayoutBinding (Binding 0: UBO, VertexStage)
+* `->` **VkDescriptorSetLayout**
+
+
+17. **VkDescriptorPoolCreateInfo**
+* `<-` PoolSize (Type: UBO, Count: MaxFrames)
+* `<-` MaxSets
+* `->` **VkDescriptorPool**
+
+
+18. **VkDescriptorSetAllocateInfo**
+* `<-` VkDescriptorPool
+* `<-` VkDescriptorSetLayout
+* `->` **VkDescriptorSet[]**
+
+
+19. **VkWriteDescriptorSet** (更新绑定)
+* `<-` VkDescriptorSet[i]
+* `<-` VkDescriptorBufferInfo `<-` VkBuffer (Uniform [i])
+* `->` `vkUpdateDescriptorSets`
+
+
+
+#### 7. 渲染管线 (Graphics Pipeline)
+
+20. **Shader Modules** **[补充]**
+* `vkCreateShaderModule` `<-` SPIR-V Code (Vert) `->` **VkShaderModule** (Vert)
+* `vkCreateShaderModule` `<-` SPIR-V Code (Frag) `->` **VkShaderModule** (Frag)
+
+
+21. **VkPipelineLayoutCreateInfo**
+* `<-` VkDescriptorSetLayout
+* `->` **VkPipelineLayout**
+
+
+22. **VkGraphicsPipelineCreateInfo**
+* `<-` VkPipelineShaderStageCreateInfo (Vert/Frag Modules + EntryPoint)
+* `<-` VkPipelineVertexInputStateCreateInfo (Binding/Attribute Description)
+* `<-` VkPipelineInputAssemblyStateCreateInfo (Topology: TriangleList)
+* `<-` VkPipelineViewportStateCreateInfo (Viewport/Scissor)
+* `<-` VkPipelineRasterizationStateCreateInfo (CullMode, PolygonMode)
+* `<-` VkPipelineMultisampleStateCreateInfo (MSAA)
+* `<-` VkPipelineDepthStencilStateCreateInfo (DepthTest Enable)
+* `<-` VkPipelineColorBlendStateCreateInfo (Blend Enable)
+* `<-` VkPipelineDynamicStateCreateInfo (Dynamic: Viewport, Scissor)
+* `<-` **VkPipelineLayout**
+* `<-` **VkRenderPass**
+* `->` **VkPipeline**
+
+
+
+#### 8. 同步对象 (Sync Objects)
+
+23. **Sync Setup**
+* `VkSemaphoreCreateInfo` `->` **presentCompleteSemaphores[]**
+* `VkSemaphoreCreateInfo` `->` **renderCompleteSemaphores[]**
+* `VkFenceCreateInfo` (Flags: Signaled) `->` **waitFences[]**
+
+
+
+---
+
+### 第二部分：渲染循环流程 (Render Loop)
+
+此部分对应 `render()` 函数，展示每一帧的动态依赖。
+
+1. **CPU 帧同步 (CPU Sync)**
+* **vkWaitForFences**
+* `<-` **waitFences[currentFrame]** (阻断 CPU，直到 GPU 用完上一轮的这一帧资源)
+
+
+* **vkResetFences**
+* `<-` **waitFences[currentFrame]** (手动重置 Fence 为“未触发”，为本轮提交做准备)
+
+
+
+
+2. **获取画布 (Acquire Image)**
+* **vkAcquireNextImageKHR**
+* `<-` VkSwapchainKHR
+* `<-` **presentCompleteSemaphores[currentFrame]** (信标 1：填入此信号量，GPU 拿到图后会 Signal 它)
+* `->` **imageIndex** (获取到的 Swapchain 图像索引，假设为 2)
+
+
+
+
+3. **数据更新 (Update Data)**
+* **Data Calc** `->` ShaderData Struct (CPU 栈上数据)
+* **memcpy**
+* `<-` ShaderData
+* `->` **uniformBuffers[currentFrame].mapped** (写入 HostCoherent 内存，GPU 可直接读取)
+
+
+
+
+4. **命令录制 (Command Recording)**
+* **vkResetCommandBuffer**
+* `<-` **commandBuffers[currentFrame]** (清空指令)
+
+
+* **vkBeginCommandBuffer**
+* `<-` VkCommandBufferBeginInfo (OneTimeSubmit)
+
+
+* **Render Pass Scope**
+* **vkCmdBeginRenderPass**
+* `<-` **VkRenderPass** (定义流程)
+* `<-` **frameBuffers[imageIndex]** (定义目标：**注意这里用的是 imageIndex，不是 currentFrame**)
+* `<-` ClearValues (定义如何清屏)
+
+
+* **Dynamic States**
+* `vkCmdSetViewport` / `vkCmdSetScissor`
+
+
+* **Binding**
+* `vkCmdBindPipeline` `<-` **VkPipeline**
+* `vkCmdBindDescriptorSets` `<-` **VkPipelineLayout**, **descriptorSets[currentFrame]**
+* `vkCmdBindVertexBuffers` `<-` vertexBuffer
+* `vkCmdBindIndexBuffer` `<-` indexBuffer
+
+
+* **Draw**
+* `vkCmdDrawIndexed` `<-` indexCount
+
+
+* **vkCmdEndRenderPass**
+
+
+* **vkEndCommandBuffer** `->` **Executable CommandBuffer**
+
+
+5. **队列提交 (Queue Submit)**
+* **VkSubmitInfo**
+* `<-` **pWaitSemaphores = presentCompleteSemaphores[currentFrame]** (等待信标 1：等有图了再执行颜色输出)
+* `<-` pWaitDstStageMask = COLOR_ATTACHMENT_OUTPUT
+* `<-` **pCommandBuffers = commandBuffers[currentFrame]** (提交刚才录制的指令)
+* `<-` **pSignalSemaphores = renderCompleteSemaphores[imageIndex]** (信标 2：画完后 Signal 它)
+
+
+* **vkQueueSubmit**
+* `<-` VkQueue
+* `<-` **waitFences[currentFrame]** (操作完成后，Signal 这个 Fence，解开下一轮 CPU 的等待)
+
+
+
+
+6. **画面呈现 (Present)**
+* **VkPresentInfoKHR**
+* `<-` **pWaitSemaphores = renderCompleteSemaphores[imageIndex]** (等待信标 2：等画完了再显示)
+* `<-` VkSwapchainKHR
+* `<-` **imageIndex** (呈现这一张)
+
+
+* **vkQueuePresentKHR**
+* `<-` VkQueue
+
+
+
+
+7. **索引轮转 (Tick)**
+* `currentFrame = (currentFrame + 1) % MAX_CONCURRENT_FRAMES`
