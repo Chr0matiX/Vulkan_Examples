@@ -3,7 +3,7 @@
 #include <cassert>
 #include <iostream>
 
-bool SurfaceVulkan::initManager() {
+bool SurfaceVulkan::init() {
 	bool rtn = false;
 
 	do {
@@ -47,7 +47,7 @@ bool SurfaceVulkan::valid() const noexcept {
 	return (m_WindowHandle != nullptr) && (m_SurfaceKHR != VK_NULL_HANDLE);
 }
 
-void SurfaceVulkan::destroyManager() {
+void SurfaceVulkan::destroy() {
 	if (m_SurfaceKHR != VK_NULL_HANDLE) {
 		vkDestroySurfaceKHR(m_VkInstance, m_SurfaceKHR, nullptr);
 		m_SurfaceKHR = VK_NULL_HANDLE;

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <set>
 
-bool DeviceVulkan::initManager() {
+bool DeviceVulkan::init() {
 	bool rtn = false;
 
 	do {
@@ -227,7 +227,7 @@ bool DeviceVulkan::valid() {
 		   m_QueueIndex.valid();
 }
 
-void DeviceVulkan::destroyManager() {
+void DeviceVulkan::destroy() {
 	if (m_LogicalDevice != VK_NULL_HANDLE) {
 		map_Index2VkQueue.clear();
 

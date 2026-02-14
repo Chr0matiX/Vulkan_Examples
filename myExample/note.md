@@ -76,6 +76,35 @@
 
 交换链的作用就是 **“缓冲/同步”**，协调这几个设备的运行节奏。
 
+# 渲染依赖整理（倒置）
+render()：
+
+1. vkQueueSubmit
+	- <- VkQueue(外部依赖)
+	- <- VkSubmitInfo
+		- <- VkCommandBuffer
+		- <- VkSemaphore(present)
+		- <- VkSemaphore(render)
+	- <- VkFence
+
+2. VkCommandBuffer(std::vector<VkCommandBuffer> 中获取)
+	- <- vkBeginCommandBuffer <- VkCommandBufferBeginInfo
+	- <- vkCmdBeginRenderPass <- VkRenderPassBeginInfo
+		- <- VkRenderPass(外部依赖)
+		- <- VkClearValue
+		- <- **VkFramebuffer**(vector<VkFramebuffer> 中获取)(TODO：这里frameBuffer为什么是一个数组？其中成员的关联是什么，比如说其中每个元素应该与什么有联系？与VkImage有联系？)
+	- <- vkCmdSetViewport <- VkViewport
+	- <- vkCmdSetScissor <- VkRect2D
+	- <- vkCmdBindDescriptorSets
+		- <- **VkPipelineLayout**
+		- <- **VkDescriptorSet**
+	- <- vkCmdBindPipeline <- **VkPipeline**
+	- <- vkCmdBindVertexBuffers <- **VkBuffer(vertices)**
+	- <- vkCmdBindIndexBuffer <- **VkBuffer(indices)**
+	- <- vkCmdDrawIndexed <- indexCount
+	- <- vkCmdEndRenderPass
+	- <- vkEndCommandBuffer
+
 # 依赖关系整理
 1. VkInstanceCreateInfo
 	- <- InstanceExtensions(实例扩展)

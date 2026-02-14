@@ -34,11 +34,11 @@ class SurfaceVulkan {
 		int m_WindowHeight{0};
 
 	private:
-		bool initManager();
+		bool init();
 
 		bool valid() const noexcept;
 
-		void destroyManager();
+		void destroy();
 
 		static LRESULT handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

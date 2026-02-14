@@ -4,7 +4,7 @@
 #include <cassert>
 #include <stdexcept>
 
-bool SwapchainVulkan::initManager() {
+bool SwapchainVulkan::init() {
 	bool rtn = false;
 
 	do {
@@ -46,7 +46,7 @@ bool SwapchainVulkan::valid() {
 		   (vec_Image.size() == vec_ImageView.size());
 }
 
-void SwapchainVulkan::destroyManager() {
+void SwapchainVulkan::destroy() {
 	vkDeviceWaitIdle(m_LogicalDevice);
 
 	/* if (m_Pipeline != VK_NULL_HANDLE) {
@@ -279,8 +279,8 @@ bool SwapchainVulkan::afterRcSwapchain() {
 		VkMemoryAllocateInfo memAllloc{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memReqs.size,
-			.memoryTypeIndex =
-				getMemoryTypeIndex(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+			.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
+												  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
 
 		if ((vkAllocateMemory(m_LogicalDevice, &memAllloc, nullptr, &m_DepthStencilRes.m_Memory) !=
 			 VK_SUCCESS) ||
@@ -501,7 +501,7 @@ void SwapchainVulkan::cleanupSwapchainRes() {
 	// }
 }
 
-uint32_t SwapchainVulkan::getMemoryTypeIndex(const uint32_t & memTypeBits,
+/* uint32_t SwapchainVulkan::getMemoryTypeIndex(const uint32_t & memTypeBits,
 											 const VkMemoryPropertyFlags & memPropertyFlags,
 											 bool * memTypeFound) {
 	uint32_t memTypeBitsClone = memTypeBits;
@@ -524,4 +524,4 @@ uint32_t SwapchainVulkan::getMemoryTypeIndex(const uint32_t & memTypeBits,
 	} else {
 		throw std::runtime_error("Could not find a matching memory type");
 	}
-}
+} */

@@ -12,13 +12,13 @@ VkContext * VkContext::m_VkContextInstance{nullptr};
 VkContext & VkContext::getInstance() {
 	if (m_VkContextInstance == nullptr) {
 		m_VkContextInstance = new VkContext();
-		assert(m_VkContextInstance->initManager());
+		assert(m_VkContextInstance->init());
 	}
 
 	return *m_VkContextInstance;
 }
 
-bool VkContext::initManager() {
+bool VkContext::init() {
 	bool rtn = false;
 
 	do {
@@ -60,7 +60,7 @@ bool VkContext::initManager() {
 			strcpy(m_SurfaceVulkanInstance->m_MainWindowsClassName, m_MainWindowsClassName);
 			strcpy(m_SurfaceVulkanInstance->m_WindowsTitle, m_WindowsTitle);
 
-			m_SurfaceVulkanInstance->initManager();
+			m_SurfaceVulkanInstance->init();
 			if (!m_SurfaceVulkanInstance->valid())
 				break;
 		}
@@ -74,8 +74,7 @@ bool VkContext::initManager() {
 			m_DeviceVulkanInstance->m_ExpectDeviceFeatures = m_ExpectDeviceFeatures;
 			m_DeviceVulkanInstance->m_DefaultQueuePriority = m_DefaultQueuePriority;
 
-			m_DeviceVulkanInstance->initManager();
-			m_DeviceVulkanInstance->initManager();
+			m_DeviceVulkanInstance->init();
 			if (!m_DeviceVulkanInstance->valid())
 				break;
 		}
@@ -95,7 +94,7 @@ bool VkContext::initManager() {
 			m_SwapchainVulkanInstance->vec_DepthStencilFormat = vec_DepthStencilFormat;
 			m_SwapchainVulkanInstance->m_MemoryProperty = m_DeviceVulkanInstance->m_MemoryProperty;
 
-			m_SwapchainVulkanInstance->initManager();
+			m_SwapchainVulkanInstance->init();
 			if (!m_SwapchainVulkanInstance->valid())
 				break;
 		}
@@ -121,21 +120,21 @@ bool VkContext::valid() {
 	return (m_VkContextInstance != nullptr) && (m_VkInstance != VK_NULL_HANDLE);
 }
 
-void VkContext::destroyManager() {
+void VkContext::destroy() {
 	if (m_SwapchainVulkanInstance != nullptr) {
-		m_SwapchainVulkanInstance->destroyManager();
+		m_SwapchainVulkanInstance->destroy();
 		delete m_SwapchainVulkanInstance;
 		m_SwapchainVulkanInstance = nullptr;
 	}
 
 	if (m_DeviceVulkanInstance != nullptr) {
-		m_DeviceVulkanInstance->destroyManager();
+		m_DeviceVulkanInstance->destroy();
 		delete m_DeviceVulkanInstance;
 		m_DeviceVulkanInstance = nullptr;
 	}
 
 	if (m_SurfaceVulkanInstance != nullptr) {
-		m_SurfaceVulkanInstance->destroyManager();
+		m_SurfaceVulkanInstance->destroy();
 		delete m_SurfaceVulkanInstance;
 		m_SurfaceVulkanInstance = nullptr;
 	}

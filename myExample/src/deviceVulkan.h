@@ -83,11 +83,11 @@ class DeviceVulkan {
 		} m_QueueIndex;
 
 	private:
-		bool initManager();
+		bool init();
 
 		bool valid();
 
-		void destroyManager();
+		void destroy();
 
 		// 此处还需要为整体配置联动，这里写的太简陋了
 		int ratePhysicalDevice(const VkPhysicalDevice & physicalDevice);

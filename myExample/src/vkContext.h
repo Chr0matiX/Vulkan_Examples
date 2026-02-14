@@ -87,7 +87,7 @@ class VkContext {
 		SwapchainVulkan * m_SwapchainVulkanInstance{nullptr};
 
 	private:
-		bool initManager();
+		bool init();
 
 		// 输入事件回调
 		static VkBool32
@@ -106,7 +106,7 @@ class VkContext {
 	public:
 		bool valid();
 
-		void destroyManager();
+		void destroy();
 
 		static VkContext & getInstance();
 };

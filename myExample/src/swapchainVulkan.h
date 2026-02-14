@@ -83,7 +83,11 @@ class SwapchainVulkan {
 		// VkPipeline m_Pipeline;
 
 	private:
-		bool initManager();
+		bool init();
+
+		bool valid();
+
+		void destroy();
 
 		bool recreateSwapchain();
 
@@ -99,13 +103,9 @@ class SwapchainVulkan {
 
 		void cleanupSwapchainRes();
 
-		bool valid();
-
-		void destroyManager();
-
 		// static SwapchainVulkan & getInstance();
 
-		uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
+	/* 	uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
 									const VkMemoryPropertyFlags & memPropertyFlags,
-									bool * memTypeFound = nullptr);
+									bool * memTypeFound = nullptr); */
 };
