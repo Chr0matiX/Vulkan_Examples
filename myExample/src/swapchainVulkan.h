@@ -45,13 +45,9 @@ class SwapchainVulkan {
 		std::vector<VkImageView> vec_ImageView;
 
 		struct /* DepthStencilRes */ {
-			public:
 				VkImage m_Image;
-
 				VkImageView m_ImageView;
-
 				VkDeviceMemory m_Memory;
-
 				VkFormat m_Format;
 		} m_DepthStencilRes;
 

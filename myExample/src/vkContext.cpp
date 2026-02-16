@@ -47,10 +47,7 @@ bool VkContext::init() {
 
 		// 此处还可以补充 layerSettings
 
-		if (vkCreateInstance(&vkInstanceCI, nullptr, &m_VkInstance) != VK_SUCCESS) {
-			std::cerr << "vkCreateInstance failed!\n";
-			break;
-		}
+		CHECK_VK_RESULT(vkCreateInstance(&vkInstanceCI, nullptr, &m_VkInstance));
 
 		// surface
 		{
@@ -162,11 +159,8 @@ bool VkContext::getEnableInstaceExtension(
 	vec_EnableInstanceExtension.reserve(extensionCount);
 
 	std::vector<VkExtensionProperties> vec_ExtensionProperty{extensionCount};
-	if (vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
-											   &vec_ExtensionProperty.front()) != VK_SUCCESS) {
-		std::cerr << "EnumerateInstanceExtensionProperties failed!\n";
-		return false;
-	}
+	CHECK_VK_RESULT(vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount,
+														   &vec_ExtensionProperty.front()));
 
 	for (const auto & expectInstanceExtension : vec_ExpectInstanceExtension) {
 		const auto & it_ExtensionProperty = std::find_if(
@@ -194,10 +188,7 @@ bool VkContext::getEnableInstaceLayer(std::vector<const char *> & vec_EnableInst
 	vec_EnableInstanceLayer.reserve(layerCount);
 
 	std::vector<VkLayerProperties> vec_LayerProperty{layerCount};
-	if (vkEnumerateInstanceLayerProperties(&layerCount, vec_LayerProperty.data()) != VK_SUCCESS) {
-		std::cerr << "EnumerateInstanceLayerProperties failed!\n";
-		return false;
-	}
+	CHECK_VK_RESULT(vkEnumerateInstanceLayerProperties(&layerCount, vec_LayerProperty.data()));
 
 	for (const auto & expectInstanceLayer : vec_ExpectInstanceLayer) {
 		const auto & it_LayerProperty =

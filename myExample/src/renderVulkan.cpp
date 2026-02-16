@@ -20,11 +20,13 @@ void RenderVulkan::destroy() {
 }
 
 bool RenderVulkan::prepare() {
-	// 同步对象
+	// 同步对象（后面再实现）
 
-	// CommandPool
+	// CommandPool（懒加载）
 
 	// 顶点数据，搬运到 GPU 中
+	if (!createVertexBufferRes())
+		return false;
 
 	// UniformBuffer
 
@@ -38,149 +40,236 @@ bool RenderVulkan::prepare() {
 	return true;
 }
 
-VkCommandBuffer RenderVulkan::getCmdBuffer(
-	const uint32_t queueIndex, const size_t currFrameIndex,
-	const VkCommandBufferLevel & cmdBufferLevel /*  = VK_COMMAND_BUFFER_LEVEL_PRIMARY */) {
-	const auto & it_Index2CmdRes = map_Index2CmdRes.find(queueIndex);
-	if (it_Index2CmdRes != map_Index2CmdRes.end())
-		return it_Index2CmdRes->second.vec_CmdBuffer[currFrameIndex];
+VkCommandPool RenderVulkan::getCmdPool(const uint32_t qIndex) {
+	const auto & it_QIndex2CmdPool = map_QIndex2CmdPool.find(qIndex);
+	if (it_QIndex2CmdPool != map_QIndex2CmdPool.end())
+		return it_QIndex2CmdPool->second;
+
+	auto & cmdPool = map_QIndex2CmdPool.emplace(qIndex, VkCommandPool()).first->second;
 
 	VkCommandPoolCreateInfo cmdPoolCI{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 									  .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-									  .queueFamilyIndex = queueIndex};
+									  .queueFamilyIndex = qIndex};
 
-	auto & cmdRes = map_Index2CmdRes.emplace(queueIndex, VkCommandRes()).first->second;
+	CHECK_VK_RESULT(vkCreateCommandPool(m_LogicalDevice, &cmdPoolCI, nullptr, &cmdPool));
 
-	if (vkCreateCommandPool(m_LogicalDevice, &cmdPoolCI, nullptr, &cmdRes.m_CmdPool) != VK_SUCCESS)
-		return VK_NULL_HANDLE;
-
-	cmdRes.vec_CmdBuffer.resize(m_MaxConcurrentFrames);
-	VkCommandBufferAllocateInfo cmdBufferAllocateInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.commandPool = cmdRes.m_CmdPool,
-		.level = cmdBufferLevel,
-		.commandBufferCount = m_MaxConcurrentFrames};
-	if (vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufferAllocateInfo,
-								 cmdRes.vec_CmdBuffer.data()) != VK_SUCCESS)
-		return VK_NULL_HANDLE;
-
-	return cmdRes.vec_CmdBuffer[currFrameIndex];
+	return cmdPool;
 }
 
-bool RenderVulkan::createVertexBuffer() {
-	m_IndexRes.m_Count = static_cast<uint32_t>(vec_Index.size());
+VkCommandBuffer RenderVulkan::getCmdBuffer(
+	const uint32_t qIndex,
+	const VkCommandBufferLevel & cmdBufferLevel /*  = VK_COMMAND_BUFFER_LEVEL_PRIMARY */) {
 
-	uint32_t vertexBufferSize = static_cast<uint32_t>(vec_Vertex.size()) * sizeof(Vertex);
-	uint32_t indexBufferSize = m_IndexRes.m_Count * sizeof(uint32_t);
+	VkCommandBuffer rtnCmd;
 
-	VkMemoryAllocateInfo memAlloc{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-	VkMemoryRequirements memReqs;
-	VertexRes stagingVertexRes, stagingIndexRes;
-	void * data;
+	VkCommandBufferAllocateInfo cmdBufferAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = getCmdPool(qIndex),
+		.level = cmdBufferLevel,
+		.commandBufferCount = 1};
 
-	// stagingVertexRes
-	{
-		VkBufferCreateInfo vertexBufferInfoCI{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-											  .size = vertexBufferSize,
-											  .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT};
+	CHECK_VK_RESULT(vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufferAllocateInfo, &rtnCmd));
 
-		if (vkCreateBuffer(m_LogicalDevice, &vertexBufferInfoCI, nullptr,
-						   &stagingVertexRes.m_Buffer) != VK_SUCCESS)
-			return false;
+	return rtnCmd;
+}
 
-		vkGetBufferMemoryRequirements(m_LogicalDevice, stagingVertexRes.m_Buffer, &memReqs);
+std::vector<VkCommandBuffer> RenderVulkan::getCmdBuffers(
+	const uint32_t qIndex, const uint32_t count,
+	const VkCommandBufferLevel & cmdBufferLevel /*  = VK_COMMAND_BUFFER_LEVEL_PRIMARY */) {
 
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
-													  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-														  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	std::vector<VkCommandBuffer> vec_RtnCmd;
+	vec_RtnCmd.resize(count);
 
-		if (vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &stagingVertexRes.m_Memory) !=
-			VK_SUCCESS)
-			return false;
+	VkCommandBufferAllocateInfo cmdBufferAllocateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.commandPool = getCmdPool(qIndex),
+		.level = cmdBufferLevel,
+		.commandBufferCount = count};
 
-		if (vkMapMemory(m_LogicalDevice, stagingVertexRes.m_Memory, 0, memAlloc.allocationSize, 0,
-						&data) != VK_SUCCESS)
-			return false;
+	CHECK_VK_RESULT(
+		vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufferAllocateInfo, vec_RtnCmd.data()));
 
-		memcpy(data, vec_Vertex.data(), vertexBufferSize);
+	return vec_RtnCmd;
+}
 
-		vkUnmapMemory(m_LogicalDevice, stagingVertexRes.m_Memory);
+bool RenderVulkan::freeCommandBuffer(const uint32_t qIndex, const VkCommandBuffer & cmdBuffer) {
 
-		if (vkBindBufferMemory(m_LogicalDevice, stagingVertexRes.m_Buffer,
-							   stagingVertexRes.m_Memory, 0) != VK_SUCCESS)
-			return false;
+	if (!map_QIndex2CmdPool.contains(qIndex))
+		return false;
 
-		///
-		vertexBufferInfoCI.usage =
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		if (vkCreateBuffer(m_LogicalDevice, &vertexBufferInfoCI, nullptr, &m_VertexRes.m_Buffer) !=
-			VK_SUCCESS)
-			return false;
-
-		vkGetBufferMemoryRequirements(m_LogicalDevice, m_VertexRes.m_Buffer, &memReqs);
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
-													  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		if (vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &m_VertexRes.m_Memory) !=
-			VK_SUCCESS)
-			return false;
-		if (vkBindBufferMemory(m_LogicalDevice, m_VertexRes.m_Buffer, m_VertexRes.m_Memory, 0) !=
-			VK_SUCCESS)
-			return false;
-	}
-
-	// stagingIndexRes
-	{
-		VkBufferCreateInfo indexbufferCI{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-										 .size = indexBufferSize,
-										 .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT};
-		if (vkCreateBuffer(m_LogicalDevice, &indexbufferCI, nullptr, &stagingIndexRes.m_Buffer) !=
-			VK_SUCCESS)
-			return false;
-
-		vkGetBufferMemoryRequirements(m_LogicalDevice, stagingIndexRes.m_Buffer, &memReqs);
-
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
-													  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-														  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		if (vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &stagingIndexRes.m_Memory) !=
-			VK_SUCCESS)
-			return false;
-
-		if (vkMapMemory(m_LogicalDevice, stagingIndexRes.m_Memory, 0, indexBufferSize, 0, &data) !=
-			VK_SUCCESS)
-			return false;
-
-		memcpy(data, vec_Index.data(), indexBufferSize);
-
-		vkUnmapMemory(m_LogicalDevice, stagingIndexRes.m_Memory);
-
-		if (vkBindBufferMemory(m_LogicalDevice, stagingIndexRes.m_Buffer, stagingIndexRes.m_Memory,
-							   0) != VK_SUCCESS)
-			return false;
-
-		indexbufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-		if (vkCreateBuffer(m_LogicalDevice, &indexbufferCI, nullptr, &m_IndexRes.m_Buffer) !=
-			VK_SUCCESS)
-			return false;
-
-		vkGetBufferMemoryRequirements(m_LogicalDevice, m_IndexRes.m_Buffer, &memReqs);
-
-		memAlloc.allocationSize = memReqs.size;
-		memAlloc.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
-													  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-		if (vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &m_IndexRes.m_Memory) !=
-			VK_SUCCESS)
-			return false;
-		if (vkBindBufferMemory(m_LogicalDevice, m_IndexRes.m_Buffer, m_IndexRes.m_Memory, 0) !=
-			VK_SUCCESS)
-			return false;
-	}
+	vkFreeCommandBuffers(m_LogicalDevice, getCmdPool(qIndex), 1, &cmdBuffer);
 
 	return true;
+}
+
+bool RenderVulkan::freeCommandBuffer(const uint32_t qIndex,
+									 const std::vector<VkCommandBuffer> & vec_CmdBuffer) {
+
+	if (!map_QIndex2CmdPool.contains(qIndex))
+		return false;
+
+	vkFreeCommandBuffers(m_LogicalDevice, getCmdPool(qIndex), vec_CmdBuffer.size(),
+						 vec_CmdBuffer.data());
+
+	return true;
+}
+
+VkCommandBuffer RenderVulkan::getFrameCmdBuffer(
+	const uint32_t currFrameIndex,
+	const VkCommandBufferLevel & cmdBufferLevel /*  = VK_COMMAND_BUFFER_LEVEL_PRIMARY */) {
+
+	if (currFrameIndex >= m_MaxConcurrentFrames)
+		return {};
+
+	if (vec_FrameCmdBuffer.empty())
+		vec_FrameCmdBuffer =
+			std::move(getCmdBuffers(m_QueueIndex.m_Graphics, m_MaxConcurrentFrames));
+
+	return vec_FrameCmdBuffer[currFrameIndex];
+}
+
+bool RenderVulkan::createVertexBufferRes() {
+	if (!getBuffer(vec_Vertex, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, m_VertexBufferRes.m_Buffer,
+				   m_VertexBufferRes.m_Memory))
+		return false;
+
+	if (!getBuffer(vec_Vertex, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, m_IndexBufferRes.m_Buffer,
+				   m_IndexBufferRes.m_Memory))
+		return false;
+
+	// m_IndexBufferRes.m_Count = static_cast<uint32_t>(vec_Vertex.size());
+
+	return true;
+}
+
+template <typename T>
+bool RenderVulkan::getBuffer(const std::vector<T> & vec_Value,
+							 const VkBufferUsageFlags & bufferUsageFlags, VkBuffer & buffer,
+							 VkDeviceMemory & bufferMemory) {
+	/// Host-Visible
+	if (vec_Value.empty())
+		return false;
+
+	uint32_t bufferSize = static_cast<uint32_t>(vec_Value.size()) * sizeof(T);
+
+	BufferRes stagingBufferRes;
+	if (!allocateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+						stagingBufferRes.m_Buffer, stagingBufferRes.m_Memory))
+		return false;
+
+	void * data;
+	CHECK_VK_RESULT(
+		vkMapMemory(m_LogicalDevice, stagingBufferRes.m_Memory, 0, bufferSize, 0, &data));
+
+	memcpy(data, vec_Value.data(), bufferSize);
+
+	vkUnmapMemory(m_LogicalDevice, stagingBufferRes.m_Memory);
+
+	/// Device-Local
+	if (!allocateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags,
+						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, bufferMemory))
+		return false;
+
+	/// Copy command
+	VkCommandBuffer copyCmd = getCmdBuffer(m_QueueIndex.m_Transfer);
+
+	VkCommandBufferBeginInfo cmdBufferBeginInfo{.sType =
+													VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+
+	if (vkBeginCommandBuffer(copyCmd, &cmdBufferBeginInfo))
+		return false;
+
+	VkBufferCopy copyRegion{.size = bufferSize};
+	vkCmdCopyBuffer(copyCmd, stagingBufferRes.m_Buffer, buffer, 1, &copyRegion);
+
+	CHECK_VK_RESULT(vkEndCommandBuffer(copyCmd));
+
+	VkSubmitInfo submitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+							.commandBufferCount = 1,
+							.pCommandBuffers = &copyCmd};
+
+	VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = 0};
+	VkFence fence;
+	CHECK_VK_RESULT(vkCreateFence(m_LogicalDevice, &fenceCI, nullptr, &fence));
+
+	CHECK_VK_RESULT(
+		vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Transfer], 1, &submitInfo, fence));
+
+	CHECK_VK_RESULT(vkWaitForFences(m_LogicalDevice, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+
+	// Destroy
+	vkDestroyFence(m_LogicalDevice, fence, nullptr);
+	freeCommandBuffer(m_QueueIndex.m_Transfer, copyCmd);
+
+	vkDestroyBuffer(m_LogicalDevice, stagingBufferRes.m_Buffer, nullptr);
+	vkFreeMemory(m_LogicalDevice, stagingBufferRes.m_Memory, nullptr);
+
+	return true;
+}
+
+bool RenderVulkan::allocateBuffer(const uint32_t bufferSize,
+								  const VkBufferUsageFlags & bufferUsageFlags,
+								  const VkMemoryPropertyFlags & memPropertyFlags, VkBuffer & buffer,
+								  VkDeviceMemory & bufferMemory) {
+
+	VkBufferCreateInfo bufferInfoCI{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+									.size = bufferSize,
+									.usage = bufferUsageFlags};
+
+	CHECK_VK_RESULT(vkCreateBuffer(m_LogicalDevice, &bufferInfoCI, nullptr, &buffer));
+
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(m_LogicalDevice, buffer, &memReqs);
+
+	VkMemoryAllocateInfo memAlloc{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+								  .allocationSize = memReqs.size,
+								  .memoryTypeIndex = getMemoryTypeIndex(
+									  m_MemoryProperty, memReqs.memoryTypeBits, memPropertyFlags)};
+
+	CHECK_VK_RESULT(vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &bufferMemory));
+
+	CHECK_VK_RESULT(vkBindBufferMemory(m_LogicalDevice, buffer, bufferMemory, 0));
+
+	return true;
+}
+
+bool RenderVulkan::createUniformBufferRes() {
+	VkMemoryAllocateInfo allocInfo{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+								   .pNext = nullptr,
+								   .allocationSize = 0,
+								   .memoryTypeIndex = 0};
+
+	VkBufferCreateInfo bufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+								  .size = sizeof(ShaderData),
+								  .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT};
+
+	vec_UniformRes.resize(m_MaxConcurrentFrames);
+
+	VkMemoryRequirements memReqs;
+
+	for (uint32_t i = 0; i < m_MaxConcurrentFrames; i++) {
+		auto & uniformRes = vec_UniformRes[i];
+
+		CHECK_VK_RESULT(vkCreateBuffer(m_LogicalDevice, &bufferInfo, nullptr,
+									   &uniformRes.m_BufferRes.m_Buffer));
+
+		vkGetBufferMemoryRequirements(m_LogicalDevice, uniformRes.m_BufferRes.m_Buffer, &memReqs);
+
+		allocInfo.allocationSize = memReqs.size;
+		allocInfo.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
+													   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+														   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		CHECK_VK_RESULT(vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr,
+										 &uniformRes.m_BufferRes.m_Memory));
+
+		CHECK_VK_RESULT(vkBindBufferMemory(m_LogicalDevice, uniformRes.m_BufferRes.m_Buffer,
+										   uniformRes.m_BufferRes.m_Memory, 0));
+
+		CHECK_VK_RESULT(vkMapMemory(m_LogicalDevice, uniformRes.m_BufferRes.m_Memory, 0,
+									sizeof(ShaderData), 0, (void **)&uniformRes.m_PMapped));
+	}
+
+	return !vec_UniformRes.empty();
 }

@@ -20,11 +20,8 @@ bool DeviceVulkan::init() {
 		}
 
 		std::vector<VkPhysicalDevice> vec_PhysicalDevice(gpuCount);
-		if (vkEnumeratePhysicalDevices(m_VkInstance, &gpuCount, vec_PhysicalDevice.data()) !=
-			VK_SUCCESS) {
-			std::cerr << "vkEnumeratePhysicalDevices failed!\n";
-			break;
-		}
+		CHECK_VK_RESULT(
+			vkEnumeratePhysicalDevices(m_VkInstance, &gpuCount, vec_PhysicalDevice.data()));
 
 		// gpu 打分选取
 		int highestScore{-1};
@@ -163,10 +160,8 @@ bool DeviceVulkan::init() {
 			vec_EnableDeviceExtension.reserve(extensionCount);
 
 			std::vector<VkExtensionProperties> vec_DeviceExtensionProperty{extensionCount};
-			if (vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &extensionCount,
-													 vec_DeviceExtensionProperty.data()) !=
-				VK_SUCCESS)
-				break;
+			CHECK_VK_RESULT(vkEnumerateDeviceExtensionProperties(
+				m_PhysicalDevice, nullptr, &extensionCount, vec_DeviceExtensionProperty.data()));
 
 			for (const auto & expectDeviceExtension : vec_ExpectDeviceExtension) {
 				if (std::find_if(
@@ -188,8 +183,7 @@ bool DeviceVulkan::init() {
 		// Features 选取还需要补充
 		deviceCI.pEnabledFeatures = &m_ExpectDeviceFeatures;
 
-		if (vkCreateDevice(m_PhysicalDevice, &deviceCI, nullptr, &m_LogicalDevice) != VK_SUCCESS)
-			break;
+		CHECK_VK_RESULT(vkCreateDevice(m_PhysicalDevice, &deviceCI, nullptr, &m_LogicalDevice));
 
 		VkQueue vkQueue;
 		VkCommandPool vkCommandPool;
@@ -197,21 +191,6 @@ bool DeviceVulkan::init() {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
 		};
-
-		/*for (const auto & queueIndex : set_QueueIndexes) {
-			if (map_Index2VkQueue.contains(queueIndex))
-				continue;
-
-			vkGetDeviceQueue(m_LogicalDevice, queueIndex, 0, &vkQueue);
-			map_Index2VkQueue[queueIndex] = vkQueue;
-
-			commandPoolCI.queueFamilyIndex = queueIndex;
-
-			if (vkCreateCommandPool(m_LogicalDevice, &commandPoolCI, nullptr, &vkCommandPool) !=
-				VK_SUCCESS)
-				continue;
-			map_Index2CommandPool[queueIndex] = vkCommandPool;
-		}*/
 
 		if (!valid())
 			break;
@@ -229,7 +208,7 @@ bool DeviceVulkan::valid() {
 
 void DeviceVulkan::destroy() {
 	if (m_LogicalDevice != VK_NULL_HANDLE) {
-		map_Index2VkQueue.clear();
+		map_QIndex2Queue.clear();
 
 		vkDestroyDevice(m_LogicalDevice, nullptr);
 		m_LogicalDevice = VK_NULL_HANDLE;
@@ -336,15 +315,13 @@ int DeviceVulkan::ratePhysicalDevice(const VkPhysicalDevice & physicalDevice) {
 	return score;
 }
 
-
-
 VkQueue DeviceVulkan::getVkQueue(const uint32_t & queueIndex) {
-	if (!map_Index2VkQueue.contains(queueIndex)) {
+	if (!map_QIndex2Queue.contains(queueIndex)) {
 		VkQueue vkQueue;
 		vkGetDeviceQueue(m_LogicalDevice, queueIndex, 0, &vkQueue);
-		map_Index2VkQueue[queueIndex] = vkQueue;
+		map_QIndex2Queue[queueIndex] = vkQueue;
 		return vkQueue;
 	}
 
-	return map_Index2VkQueue.at(queueIndex);
+	return map_QIndex2Queue.at(queueIndex);
 }

@@ -1,7 +1,10 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
+#include <glm/glm.hpp>
 
+#include <ctime>
+#include <iostream>
 #include <stdexcept>
 
 #define SINGLETON_CLASS(className)                     \
@@ -15,9 +18,17 @@ private:                                               \
                                                        \
 public:
 
+#define DEFAULT_FENCE_TIMEOUT 100000000000
+
 struct Vertex {
 		float position[3];
 		float color[3];
+};
+
+struct ShaderData {
+		glm::mat4 projectionMatrix;
+		glm::mat4 modelMatrix;
+		glm::mat4 viewMatrix;
 };
 
 inline uint32_t getMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties & memoryProperty,
@@ -44,4 +55,36 @@ inline uint32_t getMemoryTypeIndex(const VkPhysicalDeviceMemoryProperties & memo
 	} else {
 		throw std::runtime_error("Could not find a matching memory type");
 	}
+}
+
+inline std::string getCurrentTimeStr() {
+	std::time_t t = std::time(nullptr);
+	std::tm tm{};
+
+	localtime_s(&tm, &t);
+
+	char buf[20];
+	std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
+	return buf;
+}
+
+#define CHECK_VK_RESULT(f) checkVkResult((f), #f, __FILE__, __LINE__)
+
+inline void checkVkResult(const VkResult & vkResult, const char * funcName, const char * fileName,
+						  const int line) {
+	if (vkResult == VK_SUCCESS)
+		return;
+
+	if (vkResult > VK_SUCCESS) {
+		std::cout << "[Warning]\t{" << getCurrentTimeStr() << "}\tvkResult: " << vkResult
+				  << ", func: " << funcName << ", file: " << fileName << ", line: " << line
+				  << std::endl;
+		return;
+	}
+
+	std::cout << "[Error]\t{" << getCurrentTimeStr() << "}\tvkResult: " << vkResult
+			  << ", func: " << funcName << ", file: " << fileName << ", line: " << line
+			  << std::endl;
+	fflush(stdout);
+	exit(1);
 }

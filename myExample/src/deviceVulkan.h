@@ -42,7 +42,7 @@ class DeviceVulkan {
 
 		VkPhysicalDeviceMemoryProperties m_MemoryProperty;
 
-		std::map<uint32_t, VkQueue> map_Index2VkQueue;
+		std::map<uint32_t, VkQueue> map_QIndex2Queue;
 
 		// std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
 

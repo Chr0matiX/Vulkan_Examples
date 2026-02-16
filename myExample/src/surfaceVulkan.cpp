@@ -27,11 +27,8 @@ bool SurfaceVulkan::init() {
 				.hinstance = m_AppInctance,
 				.hwnd = m_WindowHandle};
 
-			if (vkCreateWin32SurfaceKHR(m_VkInstance, &surfaceCI, nullptr, &m_SurfaceKHR) !=
-				VK_SUCCESS) {
-				std::cerr << "vkCreateWin32SurfaceKHR failed!\n";
-				break;
-			}
+			CHECK_VK_RESULT(
+				vkCreateWin32SurfaceKHR(m_VkInstance, &surfaceCI, nullptr, &m_SurfaceKHR));
 		}
 
 		if (!valid())
