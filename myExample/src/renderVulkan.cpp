@@ -29,11 +29,19 @@ bool RenderVulkan::prepare() {
 		return false;
 
 	// UniformBuffer
+	if (!createUniformBufferRes())
+		return false;
 
 	// Descriptor 资源
 	// Layout
+	if (!createDescriptorSetLayout())
+		return false;
 	// Pool
+	if (!createDescriptorPool())
+		return false;
 	// Set
+	if (!createDescriptorSets())
+		return false;
 
 	// Pipeline
 
