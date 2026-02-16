@@ -229,7 +229,8 @@ bool SwapchainVulkan::afterRcSwapchain() {
 			.arrayLayers = 1,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT};
+			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		};
 
 		CHECK_VK_RESULT(
 			vkCreateImage(m_LogicalDevice, &imageCI, nullptr, &m_DepthStencilRes.m_Image));
@@ -241,7 +242,8 @@ bool SwapchainVulkan::afterRcSwapchain() {
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memReqs.size,
 			.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
-												  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+												  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+		};
 
 		if ((vkAllocateMemory(m_LogicalDevice, &memAllloc, nullptr, &m_DepthStencilRes.m_Memory) !=
 			 VK_SUCCESS) ||
@@ -249,17 +251,20 @@ bool SwapchainVulkan::afterRcSwapchain() {
 							   m_DepthStencilRes.m_Memory, 0) != VK_SUCCESS))
 			return false;
 
-		VkImageViewCreateInfo imageViewCI{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-										  .image = m_DepthStencilRes.m_Image,
-										  .viewType = VK_IMAGE_VIEW_TYPE_2D,
-										  .format = m_DepthStencilRes.m_Format,
-										  .subresourceRange = {
-											  .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-											  .baseMipLevel = 0,
-											  .levelCount = 1,
-											  .baseArrayLayer = 0,
-											  .layerCount = 1,
-										  }};
+		VkImageViewCreateInfo imageViewCI{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = m_DepthStencilRes.m_Image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = m_DepthStencilRes.m_Format,
+			.subresourceRange =
+				{
+					.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+				},
+		};
 
 		if (m_DepthStencilRes.m_Format >= VK_FORMAT_D16_UNORM_S8_UINT) {
 			imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -282,13 +287,21 @@ bool SwapchainVulkan::afterRcSwapchain() {
 			.image = vec_Image[i],
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = m_SurfaceFormat.format,
-			.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
-						   VK_COMPONENT_SWIZZLE_A},
-			.subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-								 .baseMipLevel = 0,
-								 .levelCount = 1,
-								 .baseArrayLayer = 0,
-								 .layerCount = 1},
+			.components =
+				{
+					VK_COMPONENT_SWIZZLE_R,
+					VK_COMPONENT_SWIZZLE_G,
+					VK_COMPONENT_SWIZZLE_B,
+					VK_COMPONENT_SWIZZLE_A,
+				},
+			.subresourceRange =
+				{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+				},
 		};
 
 		CHECK_VK_RESULT(
@@ -304,13 +317,15 @@ bool SwapchainVulkan::afterRcSwapchain() {
 	vec_FrameBuffer.resize(m_ImageCount);
 	for (uint32_t i = 0; i < m_ImageCount; ++i) {
 		const VkImageView attachments[2] = {vec_ImageView[i], m_DepthStencilRes.m_ImageView};
-		VkFramebufferCreateInfo frameBufferCI{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-											  .renderPass = m_RenderPass,
-											  .attachmentCount = 2,
-											  .pAttachments = attachments,
-											  .width = m_SurfaceCaps.currentExtent.width,
-											  .height = m_SurfaceCaps.currentExtent.height,
-											  .layers = 1};
+		VkFramebufferCreateInfo frameBufferCI{
+			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			.renderPass = m_RenderPass,
+			.attachmentCount = 2,
+			.pAttachments = attachments,
+			.width = m_SurfaceCaps.currentExtent.width,
+			.height = m_SurfaceCaps.currentExtent.height,
+			.layers = 1,
+		};
 		CHECK_VK_RESULT(
 			vkCreateFramebuffer(m_LogicalDevice, &frameBufferCI, nullptr, &vec_FrameBuffer[i]));
 	}
@@ -343,29 +358,37 @@ bool SwapchainVulkan::setRenderPass() {
 	// 定义不同的缓存规格，和操作定义
 	std::vector<VkAttachmentDescription> attachments{
 		// Color attachment
-		VkAttachmentDescription{.format = m_SurfaceFormat.format,
-								.samples = VK_SAMPLE_COUNT_1_BIT,
-								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-								.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-								.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-								.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
+		VkAttachmentDescription{
+			.format = m_SurfaceFormat.format,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		},
 		// Depth attachment
-		VkAttachmentDescription{.format = m_DepthStencilRes.m_Format,
-								.samples = VK_SAMPLE_COUNT_1_BIT,
-								.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-								.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-								.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-								.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-								.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-								.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+		VkAttachmentDescription{
+			.format = m_DepthStencilRes.m_Format,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		}};
 
 	// 定义数组引用，attachment 表示下标
-	VkAttachmentReference colorReference{.attachment = 0,
-										 .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+	VkAttachmentReference colorReference{
+		.attachment = 0,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	};
 	VkAttachmentReference depthReference{
-		.attachment = 1, .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+		.attachment = 1,
+		.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+	};
 
 	VkSubpassDescription subpassDescription{
 		.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,

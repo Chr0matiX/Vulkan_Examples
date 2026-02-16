@@ -10,7 +10,9 @@ bool DeviceVulkan::init() {
 	bool rtn = false;
 
 	do {
-		VkDeviceCreateInfo deviceCI{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+		VkDeviceCreateInfo deviceCI{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		};
 
 		uint32_t gpuCount{0};
 		vkEnumeratePhysicalDevices(m_VkInstance, &gpuCount, nullptr);

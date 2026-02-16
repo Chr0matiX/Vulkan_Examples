@@ -47,9 +47,11 @@ VkCommandPool RenderVulkan::getCmdPool(const uint32_t qIndex) {
 
 	auto & cmdPool = map_QIndex2CmdPool.emplace(qIndex, VkCommandPool()).first->second;
 
-	VkCommandPoolCreateInfo cmdPoolCI{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-									  .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-									  .queueFamilyIndex = qIndex};
+	VkCommandPoolCreateInfo cmdPoolCI{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = qIndex,
+	};
 
 	CHECK_VK_RESULT(vkCreateCommandPool(m_LogicalDevice, &cmdPoolCI, nullptr, &cmdPool));
 
@@ -66,7 +68,8 @@ VkCommandBuffer RenderVulkan::getCmdBuffer(
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = getCmdPool(qIndex),
 		.level = cmdBufferLevel,
-		.commandBufferCount = 1};
+		.commandBufferCount = 1,
+	};
 
 	CHECK_VK_RESULT(vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufferAllocateInfo, &rtnCmd));
 
@@ -84,7 +87,8 @@ std::vector<VkCommandBuffer> RenderVulkan::getCmdBuffers(
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 		.commandPool = getCmdPool(qIndex),
 		.level = cmdBufferLevel,
-		.commandBufferCount = count};
+		.commandBufferCount = count,
+	};
 
 	CHECK_VK_RESULT(
 		vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufferAllocateInfo, vec_RtnCmd.data()));
@@ -174,8 +178,9 @@ bool RenderVulkan::getBuffer(const std::vector<T> & vec_Value,
 	/// Copy command
 	VkCommandBuffer copyCmd = getCmdBuffer(m_QueueIndex.m_Transfer);
 
-	VkCommandBufferBeginInfo cmdBufferBeginInfo{.sType =
-													VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+	VkCommandBufferBeginInfo cmdBufferBeginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+	};
 
 	if (vkBeginCommandBuffer(copyCmd, &cmdBufferBeginInfo))
 		return false;
@@ -185,9 +190,11 @@ bool RenderVulkan::getBuffer(const std::vector<T> & vec_Value,
 
 	CHECK_VK_RESULT(vkEndCommandBuffer(copyCmd));
 
-	VkSubmitInfo submitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-							.commandBufferCount = 1,
-							.pCommandBuffers = &copyCmd};
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &copyCmd,
+	};
 
 	VkFenceCreateInfo fenceCI{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = 0};
 	VkFence fence;
@@ -213,19 +220,23 @@ bool RenderVulkan::allocateBuffer(const uint32_t bufferSize,
 								  const VkMemoryPropertyFlags & memPropertyFlags, VkBuffer & buffer,
 								  VkDeviceMemory & bufferMemory) {
 
-	VkBufferCreateInfo bufferInfoCI{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-									.size = bufferSize,
-									.usage = bufferUsageFlags};
+	VkBufferCreateInfo bufferInfoCI{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = bufferSize,
+		.usage = bufferUsageFlags,
+	};
 
 	CHECK_VK_RESULT(vkCreateBuffer(m_LogicalDevice, &bufferInfoCI, nullptr, &buffer));
 
 	VkMemoryRequirements memReqs;
 	vkGetBufferMemoryRequirements(m_LogicalDevice, buffer, &memReqs);
 
-	VkMemoryAllocateInfo memAlloc{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-								  .allocationSize = memReqs.size,
-								  .memoryTypeIndex = getMemoryTypeIndex(
-									  m_MemoryProperty, memReqs.memoryTypeBits, memPropertyFlags)};
+	VkMemoryAllocateInfo memAlloc{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memReqs.size,
+		.memoryTypeIndex =
+			getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits, memPropertyFlags),
+	};
 
 	CHECK_VK_RESULT(vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &bufferMemory));
 
@@ -235,14 +246,18 @@ bool RenderVulkan::allocateBuffer(const uint32_t bufferSize,
 }
 
 bool RenderVulkan::createUniformBufferRes() {
-	VkMemoryAllocateInfo allocInfo{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-								   .pNext = nullptr,
-								   .allocationSize = 0,
-								   .memoryTypeIndex = 0};
+	VkMemoryAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.allocationSize = 0,
+		.memoryTypeIndex = 0,
+	};
 
-	VkBufferCreateInfo bufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-								  .size = sizeof(ShaderData),
-								  .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT};
+	VkBufferCreateInfo bufferInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = sizeof(ShaderData),
+		.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+	};
 
 	vec_UniformRes.resize(m_MaxConcurrentFrames);
 
@@ -272,4 +287,77 @@ bool RenderVulkan::createUniformBufferRes() {
 	}
 
 	return !vec_UniformRes.empty();
+}
+
+bool RenderVulkan::createDescriptorSetLayout() {
+	VkDescriptorSetLayoutBinding layoutBinding{
+		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		.descriptorCount = 1,
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		.pImmutableSamplers = nullptr,
+	};
+
+	VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.bindingCount = 1,
+		.pBindings = &layoutBinding,
+	};
+
+	CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_LogicalDevice, &descriptorLayoutCI, nullptr,
+												&m_DescriptorSetLayout));
+
+	return true;
+}
+
+bool RenderVulkan::createDescriptorPool() {
+	VkDescriptorPoolSize descriptorTypeCounts[1]{};
+	descriptorTypeCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorTypeCounts[0].descriptorCount = m_MaxConcurrentFrames;
+
+	VkDescriptorPoolCreateInfo descriptorPoolCI{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.maxSets = m_MaxConcurrentFrames,
+		.poolSizeCount = 1,
+		.pPoolSizes = descriptorTypeCounts,
+	};
+
+	CHECK_VK_RESULT(
+		vkCreateDescriptorPool(m_LogicalDevice, &descriptorPoolCI, nullptr, &m_DescriptorPool));
+
+	return true;
+}
+
+bool RenderVulkan::createDescriptorSets() {
+
+	for (uint32_t i = 0; i < m_MaxConcurrentFrames; i++) {
+		VkDescriptorSetAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = m_DescriptorPool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &m_DescriptorSetLayout,
+		};
+
+		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo,
+												 &vec_UniformRes[i].m_DescriptorSet));
+
+		VkDescriptorBufferInfo bufferInfo{
+			.buffer = vec_UniformRes[i].m_BufferRes.m_Buffer,
+			.range = sizeof(ShaderData),
+		};
+
+		VkWriteDescriptorSet writeDescriptorSet{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = vec_UniformRes[i].m_DescriptorSet,
+			.dstBinding = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.pBufferInfo = &bufferInfo,
+		};
+
+		vkUpdateDescriptorSets(m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
+	}
+
+	return true;
 }

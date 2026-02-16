@@ -22,12 +22,16 @@ bool VkContext::init() {
 	bool rtn = false;
 
 	do {
-		VkInstanceCreateInfo vkInstanceCI{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+		VkInstanceCreateInfo vkInstanceCI{
+			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		};
 
-		VkApplicationInfo appInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-								  .pApplicationName = m_AppName,
-								  .pEngineName = m_Engine,
-								  .apiVersion = m_ApiVersion};
+		VkApplicationInfo appInfo{
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pApplicationName = m_AppName,
+			.pEngineName = m_Engine,
+			.apiVersion = m_ApiVersion,
+		};
 		vkInstanceCI.pApplicationInfo = &appInfo;
 
 		std::vector<const char *> vec_EnableInstaceExtension;

@@ -70,6 +70,10 @@ class RenderVulkan {
 
 		std::vector<UniformRes> vec_UniformRes;
 
+		VkDescriptorSetLayout m_DescriptorSetLayout{VK_NULL_HANDLE};
+
+		VkDescriptorPool m_DescriptorPool{VK_NULL_HANDLE};
+
 	private:
 		bool init();
 
@@ -82,6 +86,12 @@ class RenderVulkan {
 		bool createVertexBufferRes();
 
 		bool createUniformBufferRes();
+
+		bool createDescriptorSetLayout();
+
+		bool createDescriptorPool();
+
+		bool createDescriptorSets();
 
 		VkCommandPool getCmdPool(const uint32_t qIndex);
 

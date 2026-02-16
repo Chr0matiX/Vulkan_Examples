@@ -25,7 +25,8 @@ bool SurfaceVulkan::init() {
 			VkWin32SurfaceCreateInfoKHR surfaceCI{
 				.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
 				.hinstance = m_AppInctance,
-				.hwnd = m_WindowHandle};
+				.hwnd = m_WindowHandle,
+			};
 
 			CHECK_VK_RESULT(
 				vkCreateWin32SurfaceKHR(m_VkInstance, &surfaceCI, nullptr, &m_SurfaceKHR));
@@ -211,7 +212,12 @@ bool SurfaceVulkan::createWindow() {
 	DWORD dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-	RECT windowRect{.left = 0L, .top = 0L, .right = m_WindowWidth, .bottom = m_WindowHeight};
+	RECT windowRect{
+		.left = 0L,
+		.top = 0L,
+		.right = m_WindowWidth,
+		.bottom = m_WindowHeight,
+	};
 
 	AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
 
