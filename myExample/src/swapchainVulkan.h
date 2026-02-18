@@ -44,12 +44,7 @@ class SwapchainVulkan {
 
 		std::vector<VkImageView> vec_ImageView;
 
-		struct /* DepthStencilRes */ {
-				VkImage m_Image;
-				VkImageView m_ImageView;
-				VkDeviceMemory m_Memory;
-				VkFormat m_Format;
-		} m_DepthStencilRes;
+		DepthStencilRes m_DepthStencilRes;
 
 		VkSurfaceFormatKHR m_SurfaceFormat;
 
@@ -101,7 +96,7 @@ class SwapchainVulkan {
 
 		// static SwapchainVulkan & getInstance();
 
-	/* 	uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
-									const VkMemoryPropertyFlags & memPropertyFlags,
-									bool * memTypeFound = nullptr); */
+		/* 	uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
+										const VkMemoryPropertyFlags & memPropertyFlags,
+										bool * memTypeFound = nullptr); */
 };

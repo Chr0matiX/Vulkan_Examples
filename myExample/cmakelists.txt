@@ -9,7 +9,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 #set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 
 
 # -D_X86_: clangd 对于 包含windows头文件识别，需要先定义这个宏
-add_definitions(-D_CRT_SECURE_NO_WARNINGS -DFORCE_VALIDATION -D_X86_)
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-DFORCE_VALIDATION)
+add_definitions(-D_X86_)
+add_definitions(-DSADERPATH=\"${CMAKE_SOURCE_DIR}/shader/\")
 
 project(${NAME})
 

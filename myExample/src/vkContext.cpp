@@ -100,6 +100,42 @@ bool VkContext::init() {
 				break;
 		}
 
+		// render
+		{
+			m_RenderVulkanInstance = new RenderVulkan();
+			m_RenderVulkanInstance->vec_Vertex = {
+				{{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+				{{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+				{{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+			};
+			m_RenderVulkanInstance->vec_Index = {
+				0,
+				1,
+				2,
+			};
+			m_RenderVulkanInstance->m_renderPass = m_SwapchainVulkanInstance->m_RenderPass;
+			m_RenderVulkanInstance->m_QueueIndex = {
+				.m_Graphics = m_DeviceVulkanInstance->m_QueueIndex.getGraphics(),
+				.m_Present = m_DeviceVulkanInstance->m_QueueIndex.getPresent(),
+				.m_Transfer = m_DeviceVulkanInstance->m_QueueIndex.getTransfer(),
+				.m_Compute = m_DeviceVulkanInstance->m_QueueIndex.getCompute(),
+			};
+			m_RenderVulkanInstance->m_LogicalDevice = m_DeviceVulkanInstance->m_LogicalDevice;
+			m_RenderVulkanInstance->m_MaxConcurrentFrames = m_MaxConcurrentFrames;
+			m_RenderVulkanInstance->m_MemoryProperty = m_DeviceVulkanInstance->m_MemoryProperty;
+			m_RenderVulkanInstance->map_QIndex2Queue = m_DeviceVulkanInstance->map_QIndex2Queue;
+			m_RenderVulkanInstance->vec_ImageView = m_SwapchainVulkanInstance->vec_ImageView;
+			m_RenderVulkanInstance->m_Swapchain = m_SwapchainVulkanInstance->m_SwapChain;
+			m_RenderVulkanInstance->m_WindowWidth = m_SurfaceVulkanInstance->m_WindowWidth;
+			m_RenderVulkanInstance->m_WindowHeight = m_SurfaceVulkanInstance->m_WindowHeight;
+			m_RenderVulkanInstance->m_DepthStencilRes =
+				m_SwapchainVulkanInstance->m_DepthStencilRes;
+
+			m_RenderVulkanInstance->init();
+			if (!m_RenderVulkanInstance->valid())
+				break;
+		}
+
 		if (!valid())
 			break;
 
@@ -222,4 +258,8 @@ void VkContext::setDebugUtils(VkInstanceCreateInfo & vkInstanceCI) const {
 	vkInstanceCI.pNext = &debugMessCIExte;
 
 	return;
+}
+
+void VkContext::startRenderLoop() {
+	m_RenderVulkanInstance->renderLoop();
 }

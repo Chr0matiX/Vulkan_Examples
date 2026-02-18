@@ -88,3 +88,10 @@ inline void checkVkResult(const VkResult & vkResult, const char * funcName, cons
 	fflush(stdout);
 	exit(1);
 }
+
+struct DepthStencilRes {
+		VkImage m_Image;
+		VkImageView m_ImageView;
+		VkDeviceMemory m_Memory;
+		VkFormat m_Format;
+};

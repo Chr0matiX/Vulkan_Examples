@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Utils.hpp"
+#include "camera.hpp"
 
 #include "vulkan/vulkan.h"
 
@@ -38,6 +39,16 @@ class RenderVulkan {
 
 		std::map<uint32_t, VkQueue> map_QIndex2Queue;
 
+		std::vector<VkImageView> vec_ImageView;
+
+		VkSwapchainKHR m_Swapchain{VK_NULL_HANDLE};
+
+		int m_WindowWidth{0};
+
+		int m_WindowHeight{0};
+
+		DepthStencilRes m_DepthStencilRes;
+
 		/**********************************************************
 		资源
 		**********************************************************/
@@ -45,21 +56,14 @@ class RenderVulkan {
 
 		VkPipeline m_Pipeline{VK_NULL_HANDLE};
 
-		/* struct VkCommandRes {
-				VkCommandPool m_CmdPool;
-				std::vector<VkCommandBuffer> vec_CmdBuffer;
-		} m_CmdRes; */
-
 		std::map<uint32_t, VkCommandPool> map_QIndex2CmdPool;
 
 		std::vector<VkCommandBuffer> vec_FrameCmdBuffer;
 
-		/* std::map<uint32_t, VkCommandRes> map_Index2CmdRes; */
-
 		struct BufferRes {
 				VkDeviceMemory m_Memory{VK_NULL_HANDLE};
 				VkBuffer m_Buffer{VK_NULL_HANDLE};
-				// uint32_t m_Count{0};
+				uint32_t m_Count{0};
 		} m_VertexBufferRes, m_IndexBufferRes;
 
 		struct UniformRes {
@@ -74,6 +78,20 @@ class RenderVulkan {
 
 		VkDescriptorPool m_DescriptorPool{VK_NULL_HANDLE};
 
+		VkPipelineCache m_PipelineCache{VK_NULL_HANDLE};
+
+		std::vector<VkFence> vec_Fence;
+
+		std::vector<VkSemaphore> vec_PresentSmph;
+
+		std::vector<VkSemaphore> vec_RenderSmph;
+
+		uint32_t m_CurrentFrameIndex{0};
+
+		Camera m_Camera;
+
+		std::vector<VkFramebuffer> vec_FrameBuffer;
+
 	private:
 		bool init();
 
@@ -82,6 +100,8 @@ class RenderVulkan {
 		void destroy();
 
 		bool prepare();
+
+		bool createSyncObj();
 
 		bool createVertexBufferRes();
 
@@ -92,6 +112,12 @@ class RenderVulkan {
 		bool createDescriptorPool();
 
 		bool createDescriptorSets();
+
+		bool createPipeline();
+
+		bool setupFrameBuffer();
+
+		bool renderLoop();
 
 		VkCommandPool getCmdPool(const uint32_t qIndex);
 
@@ -120,6 +146,8 @@ class RenderVulkan {
 		bool allocateBuffer(const uint32_t bufferSize, const VkBufferUsageFlags & bufferUsageFlags,
 							const VkMemoryPropertyFlags & memPropertyFlags, VkBuffer & buffer,
 							VkDeviceMemory & bufferMemory);
+
+		VkShaderModule loadSPIRVShader(const std::string & filePath);
 };
 
 /*

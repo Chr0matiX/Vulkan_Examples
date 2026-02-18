@@ -1,9 +1,18 @@
 #include "renderVulkan.h"
 
+#include <fstream>
+
 bool RenderVulkan::init() {
 	bool rtn = false;
 
 	do {
+		m_Camera.type = Camera::CameraType::lookat;
+		m_Camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		m_Camera.setRotation(glm::vec3(0.0f));
+		m_Camera.setPerspective(60.0f, (float)m_WindowWidth / (float)m_WindowHeight, 1.0f, 256.0f);
+
+		if (!prepare())
+			break;
 
 		rtn = true;
 	} while (0);
@@ -21,6 +30,8 @@ void RenderVulkan::destroy() {
 
 bool RenderVulkan::prepare() {
 	// 同步对象（后面再实现）
+	if (!createSyncObj())
+		return false;
 
 	// CommandPool（懒加载）
 
@@ -44,6 +55,8 @@ bool RenderVulkan::prepare() {
 		return false;
 
 	// Pipeline
+	if (!createPipeline())
+		return false;
 
 	return true;
 }
@@ -149,7 +162,7 @@ bool RenderVulkan::createVertexBufferRes() {
 				   m_IndexBufferRes.m_Memory))
 		return false;
 
-	// m_IndexBufferRes.m_Count = static_cast<uint32_t>(vec_Vertex.size());
+	m_IndexBufferRes.m_Count = static_cast<uint32_t>(vec_Vertex.size());
 
 	return true;
 }
@@ -365,6 +378,392 @@ bool RenderVulkan::createDescriptorSets() {
 		};
 
 		vkUpdateDescriptorSets(m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
+	}
+
+	return true;
+}
+
+bool RenderVulkan::createPipeline() {
+
+	VkPipelineLayoutCreateInfo pipelineLayoutCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.setLayoutCount = 1,
+		.pSetLayouts = &m_DescriptorSetLayout,
+	};
+
+	CHECK_VK_RESULT(
+		vkCreatePipelineLayout(m_LogicalDevice, &pipelineLayoutCI, nullptr, &m_PipelineLayout));
+
+	VkPipelineCacheCreateInfo pipelineCacheCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+	};
+
+	CHECK_VK_RESULT(
+		vkCreatePipelineCache(m_LogicalDevice, &pipelineCacheCI, nullptr, &m_PipelineCache));
+
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+	};
+
+	// Rasterization state
+	VkPipelineRasterizationStateCreateInfo rasterizationStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.depthClampEnable = VK_FALSE,
+		.rasterizerDiscardEnable = VK_FALSE,
+		.polygonMode = VK_POLYGON_MODE_FILL,
+		.cullMode = VK_CULL_MODE_NONE,
+		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+		.depthBiasEnable = VK_FALSE,
+		.lineWidth = 1.0f,
+	};
+
+	VkPipelineColorBlendAttachmentState blendAttachmentState{
+		.blendEnable = VK_FALSE,
+		.colorWriteMask = 0xf,
+	};
+
+	VkPipelineColorBlendStateCreateInfo colorBlendStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.attachmentCount = 1,
+		.pAttachments = &blendAttachmentState,
+	};
+
+	VkPipelineViewportStateCreateInfo viewportStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.viewportCount = 1,
+		.scissorCount = 1,
+	};
+
+	std::vector<VkDynamicState> dynamicStateEnables{
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_VIEWPORT,
+	};
+
+	VkPipelineDynamicStateCreateInfo dynamicStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size()),
+		.pDynamicStates = dynamicStateEnables.data(),
+	};
+
+	VkStencilOpState stencilState{
+		.failOp = VK_STENCIL_OP_KEEP,
+		.passOp = VK_STENCIL_OP_KEEP,
+		.compareOp = VK_COMPARE_OP_ALWAYS,
+	};
+
+	VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.depthTestEnable = VK_TRUE,
+		.depthWriteEnable = VK_TRUE,
+		.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+		.depthBoundsTestEnable = VK_FALSE,
+		.stencilTestEnable = VK_FALSE,
+		.front = stencilState,
+		.back = stencilState,
+	};
+
+	VkPipelineMultisampleStateCreateInfo multisampleStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+		.pSampleMask = nullptr,
+	};
+
+	VkVertexInputBindingDescription vertexInputBinding{
+		.binding = 0,
+		.stride = sizeof(Vertex),
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+	};
+
+	std::vector<VkVertexInputAttributeDescription> vertexInputAttributs{
+		// Attribute location 0: Position
+		{
+			.location = 0,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, position),
+		},
+		// Attribute location 1: Color
+		{
+			.location = 1,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, color),
+		},
+	};
+
+	VkPipelineVertexInputStateCreateInfo vertexInputStateCI{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = 1,
+		.pVertexBindingDescriptions = &vertexInputBinding,
+		.vertexAttributeDescriptionCount = 2,
+		.pVertexAttributeDescriptions = vertexInputAttributs.data(),
+	};
+
+	// Shaders
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages{
+
+		// Vertex shader
+		{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			.stage = VK_SHADER_STAGE_VERTEX_BIT,
+			.module = loadSPIRVShader(std::string(SADERPATH) + "triangle/triangle.vert.spv"),
+			.pName = "main",
+		},
+
+		// Fragment shader
+		{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+			.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.module = loadSPIRVShader(std::string(SADERPATH) + "triangle/triangle.frag.spv"),
+			.pName = "main",
+		},
+	};
+
+	assert(shaderStages[0].module != VK_NULL_HANDLE);
+	assert(shaderStages[1].module != VK_NULL_HANDLE);
+
+	VkGraphicsPipelineCreateInfo pipelineCI{
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.stageCount = static_cast<uint32_t>(shaderStages.size()),
+		.pStages = shaderStages.data(),
+		.pVertexInputState = &vertexInputStateCI,
+		.pInputAssemblyState = &inputAssemblyStateCI,
+		.pViewportState = &viewportStateCI,
+		.pRasterizationState = &rasterizationStateCI,
+		.pMultisampleState = &multisampleStateCI,
+		.pDepthStencilState = &depthStencilStateCI,
+		.pColorBlendState = &colorBlendStateCI,
+		.pDynamicState = &dynamicStateCI,
+		.layout = m_PipelineLayout,
+		.renderPass = m_renderPass,
+	};
+
+	CHECK_VK_RESULT(vkCreateGraphicsPipelines(m_LogicalDevice, m_PipelineCache, 1, &pipelineCI,
+											  nullptr, &m_Pipeline));
+
+	vkDestroyShaderModule(m_LogicalDevice, shaderStages[0].module, nullptr);
+	vkDestroyShaderModule(m_LogicalDevice, shaderStages[1].module, nullptr);
+
+	return true;
+}
+
+VkShaderModule RenderVulkan::loadSPIRVShader(const std::string & filePath) {
+	if (filePath.empty())
+		return VK_NULL_HANDLE;
+
+	std::ifstream is(filePath, std::ios::binary | std::ios::in | std::ios::ate);
+
+	if (!is.is_open()) {
+		std::cout << "Can not Open file: " << filePath << std::endl;
+		return VK_NULL_HANDLE;
+	}
+
+	size_t shaderSize = is.tellg();
+	assert(shaderSize > 0);
+	is.seekg(0, std::ios::beg);
+	char * shaderCode = new char[shaderSize];
+	is.read(shaderCode, shaderSize);
+	is.close();
+
+	VkShaderModuleCreateInfo shaderModuleCI{
+		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		.codeSize = shaderSize,
+		.pCode = (uint32_t *)shaderCode,
+	};
+
+	VkShaderModule shaderModule;
+	CHECK_VK_RESULT(vkCreateShaderModule(m_LogicalDevice, &shaderModuleCI, nullptr, &shaderModule));
+
+	delete[] shaderCode;
+
+	return shaderModule;
+}
+
+bool RenderVulkan::createSyncObj() {
+	VkFenceCreateInfo fenceCI{
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+	};
+
+	VkSemaphoreCreateInfo semaphoreCI{
+		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+	};
+
+	vec_Fence.resize(m_MaxConcurrentFrames);
+	vec_PresentSmph.resize(m_MaxConcurrentFrames);
+	for (uint32_t i = 0; i < m_MaxConcurrentFrames; ++i) {
+		CHECK_VK_RESULT(vkCreateFence(m_LogicalDevice, &fenceCI, nullptr, &vec_Fence[i]));
+		CHECK_VK_RESULT(
+			vkCreateSemaphore(m_LogicalDevice, &semaphoreCI, nullptr, &vec_PresentSmph[i]));
+	}
+
+	vec_RenderSmph.resize(vec_ImageView.size());
+	for (size_t i = 0; i < vec_ImageView.size(); ++i)
+		CHECK_VK_RESULT(
+			vkCreateSemaphore(m_LogicalDevice, &semaphoreCI, nullptr, &vec_RenderSmph[i]));
+
+	return !vec_Fence.empty() && !vec_PresentSmph.empty() && !vec_RenderSmph.empty();
+}
+
+bool RenderVulkan::setupFrameBuffer() {
+	vec_FrameBuffer.resize(vec_ImageView.size());
+	for (size_t i = 0; i < vec_FrameBuffer.size(); i++) {
+		std::vector<VkImageView> attachments{
+			vec_ImageView[i],
+			m_DepthStencilRes.m_ImageView,
+		};
+
+		VkFramebufferCreateInfo frameBufferCI{
+			.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			.renderPass = m_renderPass,
+			.attachmentCount = static_cast<uint32_t>(attachments.size()),
+			.pAttachments = attachments.data(),
+			.width = static_cast<uint32_t>(m_WindowWidth),
+			.height = static_cast<uint32_t>(m_WindowHeight),
+			.layers = 1,
+		};
+
+		CHECK_VK_RESULT(
+			vkCreateFramebuffer(m_LogicalDevice, &frameBufferCI, nullptr, &vec_FrameBuffer[i]));
+	}
+
+	return !vec_FrameBuffer.empty();
+}
+
+bool RenderVulkan::renderLoop() {
+	while (1) {
+		vkWaitForFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex], VK_TRUE, UINT64_MAX);
+		CHECK_VK_RESULT(vkResetFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex]));
+
+		uint32_t imageIndex{0};
+		VkResult result = vkAcquireNextImageKHR(m_LogicalDevice, m_Swapchain, UINT64_MAX,
+												vec_PresentSmph[m_CurrentFrameIndex],
+												VK_NULL_HANDLE, &imageIndex);
+
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			// window resize
+			continue;
+		} else if (result != VK_SUCCESS) {
+			std::cout << "Could not acquire the next swap chain image!" << std::endl;
+			fflush(stdout);
+			exit(2);
+		}
+
+		ShaderData shaderData{
+			.projectionMatrix = m_Camera.matrices.perspective,
+			.modelMatrix = glm::mat4(1.0f),
+			.viewMatrix = m_Camera.matrices.view,
+		};
+
+		memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
+
+		const auto & currentCmdBuffer = vec_FrameCmdBuffer[m_CurrentFrameIndex];
+
+		vkResetCommandBuffer(currentCmdBuffer, 0);
+
+		VkCommandBufferBeginInfo cmdBufferBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		};
+
+		CHECK_VK_RESULT(vkBeginCommandBuffer(currentCmdBuffer, &cmdBufferBeginInfo));
+
+		VkClearValue clearValues[2]{};
+		clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
+		clearValues[1].depthStencil = {1.0f, 0};
+
+		VkRenderPassBeginInfo renderPassBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.pNext = nullptr,
+			.renderPass = m_renderPass,
+			.framebuffer = vec_FrameBuffer[imageIndex],
+			.renderArea =
+				{
+					.offset =
+						{
+							.x = 0,
+							.y = 0,
+						},
+					.extent =
+						{
+							.width = static_cast<uint32_t>(m_WindowWidth),
+							.height = static_cast<uint32_t>(m_WindowHeight),
+						},
+				},
+			.clearValueCount = 2,
+			.pClearValues = clearValues,
+		};
+
+		vkCmdBeginRenderPass(currentCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		VkViewport viewport{};
+		viewport.height = static_cast<float>(m_WindowHeight);
+		viewport.width = static_cast<float>(m_WindowWidth);
+		viewport.minDepth = (float)0.0f;
+		viewport.maxDepth = (float)1.0f;
+		vkCmdSetViewport(currentCmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor{};
+		scissor.extent.width = static_cast<float>(m_WindowHeight);
+		scissor.extent.height = static_cast<float>(m_WindowWidth);
+		scissor.offset.x = 0;
+		scissor.offset.y = 0;
+		vkCmdSetScissor(currentCmdBuffer, 0, 1, &scissor);
+
+		vkCmdBindDescriptorSets(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout,
+								0, 1, &vec_UniformRes[m_CurrentFrameIndex].m_DescriptorSet, 0,
+								nullptr);
+
+		vkCmdBindPipeline(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+
+		VkDeviceSize offsets[1]{0};
+		vkCmdBindVertexBuffers(currentCmdBuffer, 0, 1, &m_VertexBufferRes.m_Buffer, offsets);
+
+		vkCmdBindIndexBuffer(currentCmdBuffer, m_IndexBufferRes.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdDrawIndexed(currentCmdBuffer, m_IndexBufferRes.m_Count, 1, 0, 0, 0);
+
+		vkCmdEndRenderPass(currentCmdBuffer);
+
+		CHECK_VK_RESULT(vkEndCommandBuffer(currentCmdBuffer));
+
+		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &vec_PresentSmph[m_CurrentFrameIndex],
+			.pWaitDstStageMask = &waitStageMask,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &currentCmdBuffer,
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
+		};
+
+		CHECK_VK_RESULT(vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Graphics], 1, &submitInfo,
+									  vec_Fence[m_CurrentFrameIndex]));
+
+		VkPresentInfoKHR presentInfo{
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &vec_RenderSmph[imageIndex],
+			.swapchainCount = 1,
+			.pSwapchains = &m_Swapchain,
+			.pImageIndices = &imageIndex,
+		};
+
+		result = vkQueuePresentKHR(map_QIndex2Queue[m_QueueIndex.m_Graphics], &presentInfo);
+
+		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+			// windows resize
+		} else if (result != VK_SUCCESS) {
+			std::cout << "Could not present the image to the swap chain!" << std::endl;
+			fflush(stdout);
+			exit(2);
+		}
+
+		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxConcurrentFrames;
 	}
 
 	return true;

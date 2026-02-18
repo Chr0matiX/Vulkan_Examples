@@ -7,6 +7,7 @@
 #include "deviceVulkan.h"
 #include "surfaceVulkan.h"
 #include "swapchainVulkan.h"
+#include "renderVulkan.h"
 
 #include "vulkan/vulkan.h"
 
@@ -86,6 +87,8 @@ class VkContext {
 
 		SwapchainVulkan * m_SwapchainVulkanInstance{nullptr};
 
+		RenderVulkan* m_RenderVulkanInstance{nullptr};
+
 	private:
 		bool init();
 
@@ -109,4 +112,6 @@ class VkContext {
 		void destroy();
 
 		static VkContext & getInstance();
+
+		void startRenderLoop();
 };
