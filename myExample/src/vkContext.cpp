@@ -47,7 +47,19 @@ bool VkContext::init() {
 		vkInstanceCI.enabledLayerCount = static_cast<uint32_t>(vec_EnableInstanceLayer.size());
 		vkInstanceCI.ppEnabledLayerNames = vec_EnableInstanceLayer.data();
 
-		setDebugUtils(vkInstanceCI);
+		// setDebugUtils(vkInstanceCI);
+
+		VkDebugUtilsMessengerCreateInfoEXT debugMessCIExte{
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+							   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+			.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+						   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+			.pfnUserCallback = debugUtilsMessCallback,
+		};
+
+		debugMessCIExte.pNext = vkInstanceCI.pNext;
+		vkInstanceCI.pNext = &debugMessCIExte;
 
 		// 此处还可以补充 layerSettings
 
@@ -58,6 +70,7 @@ bool VkContext::init() {
 			m_SurfaceVulkanInstance = new SurfaceVulkan();
 			m_SurfaceVulkanInstance->m_AppInctance = GetModuleHandle(NULL);
 			m_SurfaceVulkanInstance->m_VkInstance = m_VkInstance;
+			m_SurfaceVulkanInstance->m_MainWindowsClassName = char[m_MainWindowsClassName]
 			strcpy(m_SurfaceVulkanInstance->m_MainWindowsClassName, m_MainWindowsClassName);
 			strcpy(m_SurfaceVulkanInstance->m_WindowsTitle, m_WindowsTitle);
 
@@ -210,7 +223,7 @@ bool VkContext::getEnableInstaceExtension(
 			});
 
 		if (it_ExtensionProperty != vec_ExtensionProperty.end())
-			vec_EnableInstanceExtension.emplace_back(it_ExtensionProperty->extensionName);
+			vec_EnableInstanceExtension.emplace_back(expectInstanceExtension);
 	}
 
 	return !vec_EnableInstanceExtension.empty();
@@ -238,13 +251,13 @@ bool VkContext::getEnableInstaceLayer(std::vector<const char *> & vec_EnableInst
 						 });
 
 		if (it_LayerProperty != vec_LayerProperty.end())
-			vec_EnableInstanceLayer.emplace_back(it_LayerProperty->layerName);
+			vec_EnableInstanceLayer.emplace_back(expectInstanceLayer);
 	}
 
 	return !vec_EnableInstanceLayer.empty();
 }
 
-void VkContext::setDebugUtils(VkInstanceCreateInfo & vkInstanceCI) const {
+/* void VkContext::setDebugUtils(VkInstanceCreateInfo & vkInstanceCI) const {
 	VkDebugUtilsMessengerCreateInfoEXT debugMessCIExte{
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
 		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -258,7 +271,7 @@ void VkContext::setDebugUtils(VkInstanceCreateInfo & vkInstanceCI) const {
 	vkInstanceCI.pNext = &debugMessCIExte;
 
 	return;
-}
+} */
 
 void VkContext::startRenderLoop() {
 	m_RenderVulkanInstance->renderLoop();

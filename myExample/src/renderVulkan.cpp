@@ -768,3 +768,12 @@ bool RenderVulkan::renderLoop() {
 
 	return true;
 }
+
+bool RenderVulkan::isReady() {
+	if (vec_Vertex.empty() || vec_Index.empty() || (m_renderPass == VK_NULL_HANDLE) ||
+		(m_LogicalDevice == VK_NULL_HANDLE) || map_QIndex2Queue.empty() || vec_ImageView.empty() ||
+		(m_Swapchain == VK_NULL_HANDLE))
+		return false;
+
+	return true;
+}

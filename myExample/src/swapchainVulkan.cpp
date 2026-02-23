@@ -8,6 +8,9 @@ bool SwapchainVulkan::init() {
 	bool rtn = false;
 
 	do {
+		if (!isReady())
+			break;
+
 		// 必须要初次创建一次
 		if (!recreateSwapchain())
 			break;
@@ -455,4 +458,14 @@ void SwapchainVulkan::cleanupSwapchainRes() {
 		vkFreeMemory(device, m_DepthStencilRes.m_Memory, nullptr);
 		m_DepthStencilRes.m_Memory = VK_NULL_HANDLE;
 	}
+}
+
+bool SwapchainVulkan::isReady() {
+	if ((m_MaxConcurrentFrames <= 0) || (m_LogicalDevice == VK_NULL_HANDLE) ||
+		(m_PhysicalDevice == VK_NULL_HANDLE) || (m_SurfaceKHR == VK_NULL_HANDLE) ||
+		vec_ExpectCompositeAlphaFlags.empty() || vec_ExpectPreferredImageFormats.empty() ||
+		vec_DepthFormat.empty() || vec_DepthStencilFormat.empty())
+		return false;
+
+	return true;
 }

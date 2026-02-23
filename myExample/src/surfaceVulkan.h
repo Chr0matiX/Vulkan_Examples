@@ -46,5 +46,5 @@ class SurfaceVulkan {
 
 		bool createWindow();
 
-		//inline VkSurfaceKHR getSurfaceKHR() const noexcept { return m_SurfaceKHR; }
+		bool isReady();
 };

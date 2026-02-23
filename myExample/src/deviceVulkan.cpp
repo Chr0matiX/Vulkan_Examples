@@ -10,6 +10,9 @@ bool DeviceVulkan::init() {
 	bool rtn = false;
 
 	do {
+		if (!isReady())
+			break;
+
 		VkDeviceCreateInfo deviceCI{
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		};
@@ -326,4 +329,12 @@ VkQueue DeviceVulkan::getVkQueue(const uint32_t & queueIndex) {
 	}
 
 	return map_QIndex2Queue.at(queueIndex);
+}
+
+bool DeviceVulkan::isReady() {
+	if ((m_VkInstance == VK_NULL_HANDLE) || (m_SurfaceKHR == VK_NULL_HANDLE) ||
+		vec_ExpectDeviceExtension.empty())
+		return false;
+
+	return true;
 }

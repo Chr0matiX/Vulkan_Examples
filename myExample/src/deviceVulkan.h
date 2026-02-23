@@ -44,8 +44,6 @@ class DeviceVulkan {
 
 		std::map<uint32_t, VkQueue> map_QIndex2Queue;
 
-		// std::map<uint32_t, VkCommandPool> map_Index2CommandPool;
-
 		struct {
 			private:
 				std::optional<uint32_t> m_Graphics;
@@ -92,23 +90,9 @@ class DeviceVulkan {
 		// 此处还需要为整体配置联动，这里写的太简陋了
 		int ratePhysicalDevice(const VkPhysicalDevice & physicalDevice);
 
-		//static DeviceVulkan & getInstance();
-
-		//inline VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
-
-		//inline VkDevice getLogicalDevice() const { return m_LogicalDevice; }
-
 		inline std::set<uint32_t> getQueueIndexes() const { return m_QueueIndex.getQueueIndexes(); }
-
-		//inline uint32_t getGraphicsQueueIndex() const { return m_QueueIndex.getGraphics(); }
-
-		//inline uint32_t getPresentQueueIndex() const { return m_QueueIndex.getPresent(); }
-
-		//inline uint32_t getTransferQueueIndex() const { return m_QueueIndex.getTransfer(); }
-
-		//inline uint32_t getComputeQueueIndex() const { return m_QueueIndex.getCompute(); }
 
 		VkQueue getVkQueue(const uint32_t & queueIndex);
 
-		
+		bool isReady();
 };

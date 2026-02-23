@@ -7,6 +7,9 @@ bool SurfaceVulkan::init() {
 	bool rtn = false;
 
 	do {
+		if (!isReady())
+			break;
+
 		// HWND m_WindowHandle 句柄
 		{
 			if (!registerWindowClass())
@@ -238,6 +241,14 @@ bool SurfaceVulkan::createWindow() {
 	uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRectWidth) / 2;
 	uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - WindowRectHeight) / 2;
 	SetWindowPos(m_WindowHandle, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
+	return true;
+}
+
+bool SurfaceVulkan::isReady() {
+	if ((m_AppInctance == nullptr) || (m_VkInstance == VK_NULL_HANDLE) ||
+		(m_MainWindowsClassName == nullptr) || (m_WindowsTitle == nullptr))
+		return false;
 
 	return true;
 }

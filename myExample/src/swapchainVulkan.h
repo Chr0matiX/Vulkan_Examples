@@ -48,12 +48,6 @@ class SwapchainVulkan {
 
 		VkSurfaceFormatKHR m_SurfaceFormat;
 
-		// std::vector<VkSemaphore> vec_PresentCplSmph{m_MaxConcurrentFrames};
-
-		// std::vector<VkSemaphore> vec_RenderCplSmph{m_MaxConcurrentFrames};
-
-		// std::vector<VkFence> vec_waitFence{m_MaxConcurrentFrames};
-
 		uint32_t m_DesiredNumberOfSwapchainImages{0};
 
 		VkSurfaceCapabilitiesKHR m_SurfaceCaps;
@@ -64,14 +58,9 @@ class SwapchainVulkan {
 
 		VkPresentModeKHR m_SwapchainPresentMode{VK_PRESENT_MODE_FIFO_KHR};
 
-		// std::map<uint32_t, std::vector<VkCommandBuffer>> map_Index2VecCmdBuffer;
-
 		VkRenderPass m_RenderPass{VK_NULL_HANDLE};
 
 		std::vector<VkFramebuffer> vec_FrameBuffer;
-
-		// VkPipelineCache m_PipelineCache;
-		// VkPipeline m_Pipeline;
 
 	private:
 		bool init();
@@ -94,9 +83,5 @@ class SwapchainVulkan {
 
 		void cleanupSwapchainRes();
 
-		// static SwapchainVulkan & getInstance();
-
-		/* 	uint32_t getMemoryTypeIndex(const uint32_t & memTypeBits,
-										const VkMemoryPropertyFlags & memPropertyFlags,
-										bool * memTypeFound = nullptr); */
+		bool isReady();
 };

@@ -5,9 +5,9 @@
 #include "Utils.hpp"
 
 #include "deviceVulkan.h"
+#include "renderVulkan.h"
 #include "surfaceVulkan.h"
 #include "swapchainVulkan.h"
-#include "renderVulkan.h"
 
 #include "vulkan/vulkan.h"
 
@@ -25,7 +25,7 @@ class VkContext {
 		/**********************************************************
 		全局配置
 		**********************************************************/
-		const char * m_AppName{"MyExample"};
+		std::string m_AppName{"MyExample"};
 
 		const char * m_Engine{"MyEngine"};
 
@@ -46,9 +46,9 @@ class VkContext {
 		// 最大缓冲个数
 		const uint32_t m_MaxConcurrentFrames{2};
 
-		const char * m_MainWindowsClassName = "mainWindowClass";
+		const char * m_MainWindowsClassName{"mainWindowClass"};
 
-		const char * m_WindowsTitle = "MainWindow";
+		const char * m_WindowsTitle{"MainWindow"};
 
 		const std::vector<VkCompositeAlphaFlagBitsKHR> vec_ExpectCompositeAlphaFlags = {
 			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,			// 不透明
@@ -62,7 +62,9 @@ class VkContext {
 
 		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures;
 
-		const std::vector<const char *> vec_ExpectDeviceExtension{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+		const std::vector<std::string> vec_ExpectDeviceExtension{
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		};
 
 		const float m_DefaultQueuePriority{0.f};
 
@@ -87,7 +89,7 @@ class VkContext {
 
 		SwapchainVulkan * m_SwapchainVulkanInstance{nullptr};
 
-		RenderVulkan* m_RenderVulkanInstance{nullptr};
+		RenderVulkan * m_RenderVulkanInstance{nullptr};
 
 	private:
 		bool init();

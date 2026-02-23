@@ -148,16 +148,6 @@ class RenderVulkan {
 							VkDeviceMemory & bufferMemory);
 
 		VkShaderModule loadSPIRVShader(const std::string & filePath);
-};
 
-/*
-静态资源初始化
-同步资源获取
-commandPool
-顶点buffer
-uniformBuffer
-修饰符布局 DescriptorSetLayout
-修饰符池
-修饰符set
-pipeline
-*/
+		bool isReady();
+};
