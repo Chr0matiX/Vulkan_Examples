@@ -3,6 +3,7 @@
 - 研究`VulkanExampleBase::setupDepthStencil`中申请显存的细节
 - 研究`VulkanExampleBase::createSynchronizationPrimitives`中不同同步机制的细节
 - 研究`VulkanExampleBase::setupRenderPass`中缓存定义的细节
+- 研究`renderLoop`中 CPU 最大缓冲与 Image 最大缓冲不一致时，同步问题
 
 # 实现
 

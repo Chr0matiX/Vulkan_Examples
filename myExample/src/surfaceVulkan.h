@@ -18,9 +18,9 @@ class SurfaceVulkan {
 
 		VkInstance m_VkInstance{VK_NULL_HANDLE};
 
-		char * m_MainWindowsClassName{nullptr};
+		std::string m_MainWindowsClassName;
 
-		char * m_WindowsTitle{nullptr};
+		std::string m_WindowsTitle;
 
 		/**********************************************************
 		资源
@@ -29,9 +29,9 @@ class SurfaceVulkan {
 
 		VkSurfaceKHR m_SurfaceKHR{VK_NULL_HANDLE};
 
-		int m_WindowWidth{0};
+		int m_WindowWidth{1000};
 
-		int m_WindowHeight{0};
+		int m_WindowHeight{800};
 
 	private:
 		bool init();

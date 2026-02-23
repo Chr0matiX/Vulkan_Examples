@@ -190,12 +190,9 @@ bool DeviceVulkan::init() {
 
 		CHECK_VK_RESULT(vkCreateDevice(m_PhysicalDevice, &deviceCI, nullptr, &m_LogicalDevice));
 
-		VkQueue vkQueue;
-		VkCommandPool vkCommandPool;
-		VkCommandPoolCreateInfo commandPoolCI{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		};
+		// 此处初始化一下，感觉完全就可以不写在这里
+		for (const auto & qIndex : set_QueueIndexes)
+			getVkQueue(qIndex);
 
 		if (!valid())
 			break;

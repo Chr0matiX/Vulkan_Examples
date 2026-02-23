@@ -59,7 +59,7 @@ void SurfaceVulkan::destroy() {
 		m_WindowHandle = nullptr;
 	}
 
-	UnregisterClass(m_MainWindowsClassName, m_AppInctance);
+	UnregisterClass(m_MainWindowsClassName.c_str(), m_AppInctance);
 }
 
 LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -178,7 +178,7 @@ LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam,
 	OnHandleMessage(hWnd, uMsg, wParam, lParam);
 	*/
 	//}
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
 bool SurfaceVulkan::registerWindowClass() {
@@ -197,7 +197,7 @@ bool SurfaceVulkan::registerWindowClass() {
 		// 指定背景画刷为黑色，避免窗口在部分刷新场景下的闪烁
 		.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
 		.lpszMenuName = NULL,
-		.lpszClassName = m_MainWindowsClassName,
+		.lpszClassName = m_MainWindowsClassName.c_str(),
 		.hIconSm = LoadIcon(NULL, IDI_WINLOGO),
 	};
 
@@ -228,7 +228,7 @@ bool SurfaceVulkan::createWindow() {
 	const auto & WindowRectHeight = windowRect.bottom - windowRect.top;
 
 	m_WindowHandle =
-		CreateWindowEx(dwExStyle, m_MainWindowsClassName, m_WindowsTitle,
+		CreateWindowEx(dwExStyle, m_MainWindowsClassName.c_str(), m_WindowsTitle.c_str(),
 					   dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, 0, 0, windowRectWidth,
 					   WindowRectHeight, NULL, NULL, m_AppInctance, NULL);
 
@@ -247,7 +247,7 @@ bool SurfaceVulkan::createWindow() {
 
 bool SurfaceVulkan::isReady() {
 	if ((m_AppInctance == nullptr) || (m_VkInstance == VK_NULL_HANDLE) ||
-		(m_MainWindowsClassName == nullptr) || (m_WindowsTitle == nullptr))
+		(m_MainWindowsClassName.empty()) || (m_WindowsTitle.empty()))
 		return false;
 
 	return true;

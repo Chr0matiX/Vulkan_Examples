@@ -4,6 +4,7 @@
 #include "camera.hpp"
 
 #include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 
 #include <map>
 #include <vector>
@@ -82,6 +83,8 @@ class RenderVulkan {
 
 		std::vector<VkFence> vec_Fence;
 
+		std::vector<VkFence> vec_ImagesInFlight;
+
 		std::vector<VkSemaphore> vec_PresentSmph;
 
 		std::vector<VkSemaphore> vec_RenderSmph;
@@ -117,7 +120,7 @@ class RenderVulkan {
 
 		bool setupFrameBuffer();
 
-		bool renderLoop();
+		bool renderNext();
 
 		VkCommandPool getCmdPool(const uint32_t qIndex);
 

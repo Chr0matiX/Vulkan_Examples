@@ -28,8 +28,8 @@ bool VkContext::init() {
 
 		VkApplicationInfo appInfo{
 			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pApplicationName = m_AppName,
-			.pEngineName = m_Engine,
+			.pApplicationName = m_AppName.c_str(),
+			.pEngineName = m_Engine.c_str(),
 			.apiVersion = m_ApiVersion,
 		};
 		vkInstanceCI.pApplicationInfo = &appInfo;
@@ -70,12 +70,10 @@ bool VkContext::init() {
 			m_SurfaceVulkanInstance = new SurfaceVulkan();
 			m_SurfaceVulkanInstance->m_AppInctance = GetModuleHandle(NULL);
 			m_SurfaceVulkanInstance->m_VkInstance = m_VkInstance;
-			m_SurfaceVulkanInstance->m_MainWindowsClassName = char[m_MainWindowsClassName]
-			strcpy(m_SurfaceVulkanInstance->m_MainWindowsClassName, m_MainWindowsClassName);
-			strcpy(m_SurfaceVulkanInstance->m_WindowsTitle, m_WindowsTitle);
+			m_SurfaceVulkanInstance->m_MainWindowsClassName = m_MainWindowsClassName;
+			m_SurfaceVulkanInstance->m_WindowsTitle = m_WindowsTitle;
 
-			m_SurfaceVulkanInstance->init();
-			if (!m_SurfaceVulkanInstance->valid())
+			if (!m_SurfaceVulkanInstance->init())
 				break;
 		}
 
@@ -88,8 +86,7 @@ bool VkContext::init() {
 			m_DeviceVulkanInstance->m_ExpectDeviceFeatures = m_ExpectDeviceFeatures;
 			m_DeviceVulkanInstance->m_DefaultQueuePriority = m_DefaultQueuePriority;
 
-			m_DeviceVulkanInstance->init();
-			if (!m_DeviceVulkanInstance->valid())
+			if (!m_DeviceVulkanInstance->init())
 				break;
 		}
 
@@ -108,8 +105,7 @@ bool VkContext::init() {
 			m_SwapchainVulkanInstance->vec_DepthStencilFormat = vec_DepthStencilFormat;
 			m_SwapchainVulkanInstance->m_MemoryProperty = m_DeviceVulkanInstance->m_MemoryProperty;
 
-			m_SwapchainVulkanInstance->init();
-			if (!m_SwapchainVulkanInstance->valid())
+			if (!m_SwapchainVulkanInstance->init())
 				break;
 		}
 
@@ -144,8 +140,7 @@ bool VkContext::init() {
 			m_RenderVulkanInstance->m_DepthStencilRes =
 				m_SwapchainVulkanInstance->m_DepthStencilRes;
 
-			m_RenderVulkanInstance->init();
-			if (!m_RenderVulkanInstance->valid())
+			if (!m_RenderVulkanInstance->init())
 				break;
 		}
 
@@ -274,5 +269,20 @@ bool VkContext::getEnableInstaceLayer(std::vector<const char *> & vec_EnableInst
 } */
 
 void VkContext::startRenderLoop() {
-	m_RenderVulkanInstance->renderLoop();
+	MSG msg;
+	bool quitMessageReceived = false;
+
+	while (!quitMessageReceived) {
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT) {
+				quitMessageReceived = true;
+				break;
+			}
+		}
+
+		if (!IsIconic(m_SurfaceVulkanInstance->m_WindowHandle))
+			m_RenderVulkanInstance->renderNext();
+	}
 }

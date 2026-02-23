@@ -27,7 +27,7 @@ class VkContext {
 		**********************************************************/
 		std::string m_AppName{"MyExample"};
 
-		const char * m_Engine{"MyEngine"};
+		std::string m_Engine{"MyEngine"};
 
 		const uint32_t m_ApiVersion{VK_API_VERSION_1_0};
 
@@ -62,7 +62,7 @@ class VkContext {
 
 		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures;
 
-		const std::vector<std::string> vec_ExpectDeviceExtension{
+		const std::vector<const char *> vec_ExpectDeviceExtension{
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		};
 

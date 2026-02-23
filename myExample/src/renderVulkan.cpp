@@ -1,4 +1,5 @@
 #include "renderVulkan.h"
+#include "vulkan/vulkan_core.h"
 
 #include <fstream>
 
@@ -31,6 +32,9 @@ void RenderVulkan::destroy() {
 bool RenderVulkan::prepare() {
 	// 同步对象（后面再实现）
 	if (!createSyncObj())
+		return false;
+
+	if (!setupFrameBuffer())
 		return false;
 
 	// CommandPool（懒加载）
@@ -438,7 +442,7 @@ bool RenderVulkan::createPipeline() {
 
 	std::vector<VkDynamicState> dynamicStateEnables{
 		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR,
 	};
 
 	VkPipelineDynamicStateCreateInfo dynamicStateCI{
@@ -604,6 +608,8 @@ bool RenderVulkan::createSyncObj() {
 		CHECK_VK_RESULT(
 			vkCreateSemaphore(m_LogicalDevice, &semaphoreCI, nullptr, &vec_RenderSmph[i]));
 
+	vec_ImagesInFlight.resize(vec_ImageView.size(), VK_NULL_HANDLE);
+
 	return !vec_Fence.empty() && !vec_PresentSmph.empty() && !vec_RenderSmph.empty();
 }
 
@@ -632,139 +638,149 @@ bool RenderVulkan::setupFrameBuffer() {
 	return !vec_FrameBuffer.empty();
 }
 
-bool RenderVulkan::renderLoop() {
-	while (1) {
-		vkWaitForFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex], VK_TRUE, UINT64_MAX);
-		CHECK_VK_RESULT(vkResetFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex]));
+bool RenderVulkan::renderNext() {
+	vkWaitForFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex], VK_TRUE, UINT64_MAX);
+	CHECK_VK_RESULT(vkResetFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex]));
 
-		uint32_t imageIndex{0};
-		VkResult result = vkAcquireNextImageKHR(m_LogicalDevice, m_Swapchain, UINT64_MAX,
-												vec_PresentSmph[m_CurrentFrameIndex],
-												VK_NULL_HANDLE, &imageIndex);
+	uint32_t imageIndex{0};
+	VkResult result =
+		vkAcquireNextImageKHR(m_LogicalDevice, m_Swapchain, UINT64_MAX,
+							  vec_PresentSmph[m_CurrentFrameIndex], VK_NULL_HANDLE, &imageIndex);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			// window resize
-			continue;
-		} else if (result != VK_SUCCESS) {
-			std::cout << "Could not acquire the next swap chain image!" << std::endl;
-			fflush(stdout);
-			exit(2);
-		}
-
-		ShaderData shaderData{
-			.projectionMatrix = m_Camera.matrices.perspective,
-			.modelMatrix = glm::mat4(1.0f),
-			.viewMatrix = m_Camera.matrices.view,
-		};
-
-		memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
-
-		const auto & currentCmdBuffer = vec_FrameCmdBuffer[m_CurrentFrameIndex];
-
-		vkResetCommandBuffer(currentCmdBuffer, 0);
-
-		VkCommandBufferBeginInfo cmdBufferBeginInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-		};
-
-		CHECK_VK_RESULT(vkBeginCommandBuffer(currentCmdBuffer, &cmdBufferBeginInfo));
-
-		VkClearValue clearValues[2]{};
-		clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
-		clearValues[1].depthStencil = {1.0f, 0};
-
-		VkRenderPassBeginInfo renderPassBeginInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-			.pNext = nullptr,
-			.renderPass = m_renderPass,
-			.framebuffer = vec_FrameBuffer[imageIndex],
-			.renderArea =
-				{
-					.offset =
-						{
-							.x = 0,
-							.y = 0,
-						},
-					.extent =
-						{
-							.width = static_cast<uint32_t>(m_WindowWidth),
-							.height = static_cast<uint32_t>(m_WindowHeight),
-						},
-				},
-			.clearValueCount = 2,
-			.pClearValues = clearValues,
-		};
-
-		vkCmdBeginRenderPass(currentCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		VkViewport viewport{};
-		viewport.height = static_cast<float>(m_WindowHeight);
-		viewport.width = static_cast<float>(m_WindowWidth);
-		viewport.minDepth = (float)0.0f;
-		viewport.maxDepth = (float)1.0f;
-		vkCmdSetViewport(currentCmdBuffer, 0, 1, &viewport);
-
-		VkRect2D scissor{};
-		scissor.extent.width = static_cast<float>(m_WindowHeight);
-		scissor.extent.height = static_cast<float>(m_WindowWidth);
-		scissor.offset.x = 0;
-		scissor.offset.y = 0;
-		vkCmdSetScissor(currentCmdBuffer, 0, 1, &scissor);
-
-		vkCmdBindDescriptorSets(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout,
-								0, 1, &vec_UniformRes[m_CurrentFrameIndex].m_DescriptorSet, 0,
-								nullptr);
-
-		vkCmdBindPipeline(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
-
-		VkDeviceSize offsets[1]{0};
-		vkCmdBindVertexBuffers(currentCmdBuffer, 0, 1, &m_VertexBufferRes.m_Buffer, offsets);
-
-		vkCmdBindIndexBuffer(currentCmdBuffer, m_IndexBufferRes.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdDrawIndexed(currentCmdBuffer, m_IndexBufferRes.m_Count, 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(currentCmdBuffer);
-
-		CHECK_VK_RESULT(vkEndCommandBuffer(currentCmdBuffer));
-
-		VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-		VkSubmitInfo submitInfo{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &vec_PresentSmph[m_CurrentFrameIndex],
-			.pWaitDstStageMask = &waitStageMask,
-			.commandBufferCount = 1,
-			.pCommandBuffers = &currentCmdBuffer,
-			.signalSemaphoreCount = 1,
-			.pSignalSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
-		};
-
-		CHECK_VK_RESULT(vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Graphics], 1, &submitInfo,
-									  vec_Fence[m_CurrentFrameIndex]));
-
-		VkPresentInfoKHR presentInfo{
-			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &vec_RenderSmph[imageIndex],
-			.swapchainCount = 1,
-			.pSwapchains = &m_Swapchain,
-			.pImageIndices = &imageIndex,
-		};
-
-		result = vkQueuePresentKHR(map_QIndex2Queue[m_QueueIndex.m_Graphics], &presentInfo);
-
-		if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-			// windows resize
-		} else if (result != VK_SUCCESS) {
-			std::cout << "Could not present the image to the swap chain!" << std::endl;
-			fflush(stdout);
-			exit(2);
-		}
-
-		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxConcurrentFrames;
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		// window resize
+		return false;
+	} else if (result != VK_SUCCESS) {
+		std::cout << "Could not acquire the next swap chain image!" << std::endl;
+		fflush(stdout);
+		exit(2);
 	}
+
+	// 同步方式调整，此处还可以有别的方法，待研究
+	{
+		if (vec_ImagesInFlight[imageIndex] != VK_NULL_HANDLE)
+			vkWaitForFences(m_LogicalDevice, 1, &vec_ImagesInFlight[imageIndex], VK_TRUE,
+							UINT64_MAX);
+
+		vec_ImagesInFlight[imageIndex] = vec_Fence[m_CurrentFrameIndex];
+	}
+
+	ShaderData shaderData{
+		.projectionMatrix = m_Camera.matrices.perspective,
+		.modelMatrix = glm::mat4(1.0f),
+		.viewMatrix = m_Camera.matrices.view,
+	};
+
+	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
+
+	// const auto & currentCmdBuffer = vec_FrameCmdBuffer[m_CurrentFrameIndex];
+	const auto & currentCmdBuffer = getFrameCmdBuffer(m_CurrentFrameIndex);
+
+	vkResetCommandBuffer(currentCmdBuffer, 0);
+
+	VkCommandBufferBeginInfo cmdBufferBeginInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+	};
+
+	CHECK_VK_RESULT(vkBeginCommandBuffer(currentCmdBuffer, &cmdBufferBeginInfo));
+
+	VkClearValue clearValues[2]{};
+	clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
+	clearValues[1].depthStencil = {1.0f, 0};
+
+	VkRenderPassBeginInfo renderPassBeginInfo{
+		.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		.pNext = nullptr,
+		.renderPass = m_renderPass,
+		.framebuffer = vec_FrameBuffer[imageIndex],
+		.renderArea =
+			{
+				.offset =
+					{
+						.x = 0,
+						.y = 0,
+					},
+				.extent =
+					{
+						.width = static_cast<uint32_t>(m_WindowWidth),
+						.height = static_cast<uint32_t>(m_WindowHeight),
+					},
+			},
+		.clearValueCount = 2,
+		.pClearValues = clearValues,
+	};
+
+	vkCmdBeginRenderPass(currentCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport{};
+	viewport.height = static_cast<float>(m_WindowHeight);
+	viewport.width = static_cast<float>(m_WindowWidth);
+	viewport.minDepth = (float)0.0f;
+	viewport.maxDepth = (float)1.0f;
+	vkCmdSetViewport(currentCmdBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.extent.width = m_WindowWidth;
+	scissor.extent.height = m_WindowHeight;
+	scissor.offset.x = 0;
+	scissor.offset.y = 0;
+	vkCmdSetScissor(currentCmdBuffer, 0, 1, &scissor);
+
+	vkCmdBindDescriptorSets(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0,
+							1, &vec_UniformRes[m_CurrentFrameIndex].m_DescriptorSet, 0, nullptr);
+
+	vkCmdBindPipeline(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+
+	VkDeviceSize offsets[1]{0};
+	vkCmdBindVertexBuffers(currentCmdBuffer, 0, 1, &m_VertexBufferRes.m_Buffer, offsets);
+
+	vkCmdBindIndexBuffer(currentCmdBuffer, m_IndexBufferRes.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdDrawIndexed(currentCmdBuffer, m_IndexBufferRes.m_Count, 1, 0, 0, 0);
+
+	vkCmdEndRenderPass(currentCmdBuffer);
+
+	CHECK_VK_RESULT(vkEndCommandBuffer(currentCmdBuffer));
+
+	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+	VkSubmitInfo submitInfo{
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &vec_PresentSmph[m_CurrentFrameIndex],
+		.pWaitDstStageMask = &waitStageMask,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &currentCmdBuffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
+	};
+
+	CHECK_VK_RESULT(vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Graphics], 1, &submitInfo,
+								  vec_Fence[m_CurrentFrameIndex]));
+
+	VkPresentInfoKHR presentInfo{
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
+		.swapchainCount = 1,
+		.pSwapchains = &m_Swapchain,
+		.pImageIndices = &imageIndex,
+	};
+
+	result = vkQueuePresentKHR(map_QIndex2Queue[m_QueueIndex.m_Graphics], &presentInfo);
+
+	// test，同步问题处理
+	vkQueueWaitIdle(map_QIndex2Queue[m_QueueIndex.m_Graphics]);
+
+	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
+		// windows resize
+	} else if (result != VK_SUCCESS) {
+		std::cout << "Could not present the image to the swap chain!" << std::endl;
+		fflush(stdout);
+		exit(2);
+	}
+
+	m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % m_MaxConcurrentFrames;
 
 	return true;
 }
