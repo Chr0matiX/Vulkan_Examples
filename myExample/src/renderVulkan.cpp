@@ -459,7 +459,8 @@ bool RenderVulkan::createPipeline() {
 
 	VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-		.depthTestEnable = VK_TRUE,
+		//.depthTestEnable = VK_TRUE,
+		.depthTestEnable = VK_FALSE,
 		.depthWriteEnable = VK_TRUE,
 		.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 		.depthBoundsTestEnable = VK_FALSE,
@@ -656,15 +657,6 @@ bool RenderVulkan::renderNext() {
 		exit(2);
 	}
 
-	// 同步方式调整，此处还可以有别的方法，待研究
-	{
-		if (vec_ImagesInFlight[imageIndex] != VK_NULL_HANDLE)
-			vkWaitForFences(m_LogicalDevice, 1, &vec_ImagesInFlight[imageIndex], VK_TRUE,
-							UINT64_MAX);
-
-		vec_ImagesInFlight[imageIndex] = vec_Fence[m_CurrentFrameIndex];
-	}
-
 	ShaderData shaderData{
 		.projectionMatrix = m_Camera.matrices.perspective,
 		.modelMatrix = glm::mat4(1.0f),
@@ -752,7 +744,7 @@ bool RenderVulkan::renderNext() {
 		.commandBufferCount = 1,
 		.pCommandBuffers = &currentCmdBuffer,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
+		.pSignalSemaphores = &vec_RenderSmph[imageIndex],
 	};
 
 	CHECK_VK_RESULT(vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Graphics], 1, &submitInfo,
@@ -761,16 +753,13 @@ bool RenderVulkan::renderNext() {
 	VkPresentInfoKHR presentInfo{
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &vec_RenderSmph[m_CurrentFrameIndex],
+		.pWaitSemaphores = &vec_RenderSmph[imageIndex],
 		.swapchainCount = 1,
 		.pSwapchains = &m_Swapchain,
 		.pImageIndices = &imageIndex,
 	};
 
 	result = vkQueuePresentKHR(map_QIndex2Queue[m_QueueIndex.m_Graphics], &presentInfo);
-
-	// test，同步问题处理
-	vkQueueWaitIdle(map_QIndex2Queue[m_QueueIndex.m_Graphics]);
 
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		// windows resize
