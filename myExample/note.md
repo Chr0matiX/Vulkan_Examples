@@ -76,36 +76,8 @@
 
 交换链的作用就是 **“缓冲/同步”**，协调这几个设备的运行节奏。
 
-# 渲染依赖整理（倒置）
-render()：
-
-1. vkQueueSubmit
-	- <- VkQueue(外部依赖)
-	- <- VkSubmitInfo
-		- <- VkCommandBuffer
-		- <- VkSemaphore(present)
-		- <- VkSemaphore(render)
-	- <- VkFence
-
-2. VkCommandBuffer(std::vector<VkCommandBuffer> 中获取)
-	- <- vkBeginCommandBuffer <- VkCommandBufferBeginInfo
-	- <- vkCmdBeginRenderPass <- VkRenderPassBeginInfo
-		- <- VkRenderPass(外部依赖)
-		- <- VkClearValue
-		- <- **VkFramebuffer**(vector<VkFramebuffer> 中获取)(TODO：这里frameBuffer为什么是一个数组？其中成员的关联是什么，比如说其中每个元素应该与什么有联系？与VkImage有联系？)
-	- <- vkCmdSetViewport <- VkViewport
-	- <- vkCmdSetScissor <- VkRect2D
-	- <- vkCmdBindDescriptorSets
-		- <- **VkPipelineLayout**
-		- <- **VkDescriptorSet**
-	- <- vkCmdBindPipeline <- **VkPipeline**
-	- <- vkCmdBindVertexBuffers <- **VkBuffer(vertices)**
-	- <- vkCmdBindIndexBuffer <- **VkBuffer(indices)**
-	- <- vkCmdDrawIndexed <- indexCount
-	- <- vkCmdEndRenderPass
-	- <- vkEndCommandBuffer
-
 # 依赖关系整理
+
 1. VkInstanceCreateInfo
 	- <- InstanceExtensions(实例扩展)
 	- <- VkApplicationInfo
@@ -504,10 +476,6 @@ render()：
 * `VkSemaphoreCreateInfo` `->` **renderCompleteSemaphores[]**
 * `VkFenceCreateInfo` (Flags: Signaled) `->` **waitFences[]**
 
-
-
----
-
 ### 第二部分：渲染循环流程 (Render Loop)
 
 此部分对应 `render()` 函数，展示每一帧的动态依赖。
@@ -516,11 +484,8 @@ render()：
 * **vkWaitForFences**
 * `<-` **waitFences[currentFrame]** (阻断 CPU，直到 GPU 用完上一轮的这一帧资源)
 
-
 * **vkResetFences**
 * `<-` **waitFences[currentFrame]** (手动重置 Fence 为“未触发”，为本轮提交做准备)
-
-
 
 
 2. **获取画布 (Acquire Image)**
@@ -530,15 +495,11 @@ render()：
 * `->` **imageIndex** (获取到的 Swapchain 图像索引，假设为 2)
 
 
-
-
 3. **数据更新 (Update Data)**
 * **Data Calc** `->` ShaderData Struct (CPU 栈上数据)
 * **memcpy**
 * `<-` ShaderData
 * `->` **uniformBuffers[currentFrame].mapped** (写入 HostCoherent 内存，GPU 可直接读取)
-
-
 
 
 4. **命令录制 (Command Recording)**
@@ -567,13 +528,10 @@ render()：
 * `vkCmdBindVertexBuffers` `<-` vertexBuffer
 * `vkCmdBindIndexBuffer` `<-` indexBuffer
 
-
 * **Draw**
 * `vkCmdDrawIndexed` `<-` indexCount
 
-
 * **vkCmdEndRenderPass**
-
 
 * **vkEndCommandBuffer** `->` **Executable CommandBuffer**
 
@@ -585,11 +543,9 @@ render()：
 * `<-` **pCommandBuffers = commandBuffers[currentFrame]** (提交刚才录制的指令)
 * `<-` **pSignalSemaphores = renderCompleteSemaphores[imageIndex]** (信标 2：画完后 Signal 它)
 
-
 * **vkQueueSubmit**
 * `<-` VkQueue
 * `<-` **waitFences[currentFrame]** (操作完成后，Signal 这个 Fence，解开下一轮 CPU 的等待)
-
 
 
 
@@ -599,12 +555,41 @@ render()：
 * `<-` VkSwapchainKHR
 * `<-` **imageIndex** (呈现这一张)
 
-
 * **vkQueuePresentKHR**
 * `<-` VkQueue
 
 
-
-
 7. **索引轮转 (Tick)**
 * `currentFrame = (currentFrame + 1) % MAX_CONCURRENT_FRAMES`
+
+# 同步对象
+
+## Fence
+
+主要用来限制 CPU 能领先处理多少 VkImage。
+
+比如说 FenceCount 为1，则 CPU 处理好一个 VkImage 之后，必须要等待 这个 VkImage 被处理完，才能继续处理。
+
+而 FenceCount 为2，则 CPU 处理好一个 VkImage 之后，可以立即开始处理下一个 VkImage，直到开始处理 第三个 VkImage 的时候，才会开始尝试等待。
+
+## PresentSemaphore
+
+vkAcquireNextImageKHR 表示：当交换链中的某张图片不再被显示器读取、可以安全写入时，请把 PresentSemaphore 置为 Signaled。
+
+在 vkQueueSubmit 的 VkSubmitInfo 中，填入 pWaitSemaphores。
+
+当 GPU 的图形队列执行到 pWaitDstStageMask（例如颜色附件输出阶段）时，会挂起等待该信号量变为 Signaled。一旦等到了，GPU 会继续向下执行，并立即在底层将该信号量自动重置回 Unsignaled 状态。
+
+> PresentSemaphore 似乎是为了在图形队列执行到某个阶段之前，保证资源已经完全准备好。
+
+## RenderSemaphore
+
+在 VkSubmitInfo 中，填入 pSignalSemaphores。
+
+当 GPU 执行完这批 Command Buffer 中的所有指令（包括像素最终写回显存）后，GPU 的指令处理器会将这个 RenderSemaphore 置为 Signaled。
+
+在 VkPresentInfoKHR 中，填入 pWaitSemaphores。
+
+显示引擎在接收到 Present 请求后，会检查这个信号量。只有当它变为 Signaled 时，显示引擎才会把对应的 Image 抓取过去进行屏幕扫描。同时，显示引擎在消费掉这个信号量后，会将其自动重置回 Unsignaled 状态。
+
+> RenderSemaphore 是为了避免，Command 还未执行完，Image 就被拿去使用了。
