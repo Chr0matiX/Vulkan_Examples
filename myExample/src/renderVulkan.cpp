@@ -162,11 +162,11 @@ bool RenderVulkan::createVertexBufferRes() {
 				   m_VertexBufferRes.m_Memory))
 		return false;
 
-	if (!getBuffer(vec_Vertex, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, m_IndexBufferRes.m_Buffer,
+	if (!getBuffer(vec_Index, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, m_IndexBufferRes.m_Buffer,
 				   m_IndexBufferRes.m_Memory))
 		return false;
 
-	m_IndexBufferRes.m_Count = static_cast<uint32_t>(vec_Vertex.size());
+	m_IndexBufferRes.m_Count = static_cast<uint32_t>(vec_Index.size());
 
 	return true;
 }
@@ -369,6 +369,7 @@ bool RenderVulkan::createDescriptorSets() {
 
 		VkDescriptorBufferInfo bufferInfo{
 			.buffer = vec_UniformRes[i].m_BufferRes.m_Buffer,
+			.offset = 0,
 			.range = sizeof(ShaderData),
 		};
 
@@ -459,8 +460,7 @@ bool RenderVulkan::createPipeline() {
 
 	VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-		//.depthTestEnable = VK_TRUE,
-		.depthTestEnable = VK_FALSE,
+		.depthTestEnable = VK_TRUE,
 		.depthWriteEnable = VK_TRUE,
 		.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 		.depthBoundsTestEnable = VK_FALSE,
@@ -665,7 +665,6 @@ bool RenderVulkan::renderNext() {
 
 	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
 
-	// const auto & currentCmdBuffer = vec_FrameCmdBuffer[m_CurrentFrameIndex];
 	const auto & currentCmdBuffer = getFrameCmdBuffer(m_CurrentFrameIndex);
 
 	vkResetCommandBuffer(currentCmdBuffer, 0);
@@ -707,8 +706,8 @@ bool RenderVulkan::renderNext() {
 	VkViewport viewport{};
 	viewport.height = static_cast<float>(m_WindowHeight);
 	viewport.width = static_cast<float>(m_WindowWidth);
-	viewport.minDepth = (float)0.0f;
-	viewport.maxDepth = (float)1.0f;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(currentCmdBuffer, 0, 1, &viewport);
 
 	VkRect2D scissor{};
