@@ -1,7 +1,13 @@
 #include "surfaceVulkan.h"
+#include "keycodes.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <iostream>
+
+Camera * SurfaceVulkan::m_pCamera{nullptr};
+
+SurfaceVulkan::MouseState SurfaceVulkan::m_MouseState{};
 
 bool SurfaceVulkan::init() {
 	bool rtn = false;
@@ -63,121 +69,129 @@ void SurfaceVulkan::destroy() {
 }
 
 LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	// if (CVulkanManager::getInstance().valid() == true) {
-	/*
-	switch (uMsg) {
-	case WM_CLOSE:
-		prepared = false;
-		DestroyWindow(hWnd);
-		PostQuitMessage(0);
-		break;
-	case WM_PAINT:
-		ValidateRect(window, NULL);
-		break;
-	case WM_KEYDOWN:
-		switch (wParam) {
-		case KEY_P:
-			paused = !paused;
-			break;
-		case KEY_F1:
-			ui.visible = !ui.visible;
-			break;
-		case KEY_F2:
-			if (camera.type == Camera::CameraType::lookat) {
-				camera.type = Camera::CameraType::firstperson;
-			} else {
-				camera.type = Camera::CameraType::lookat;
-			}
-			break;
-		case KEY_ESCAPE:
+	if (m_pCamera != nullptr) {
+		switch (uMsg) {
+		case WM_CLOSE:
+			// prepared = false;
+			DestroyWindow(hWnd);
 			PostQuitMessage(0);
 			break;
-		}
+		/* case WM_PAINT:
+			ValidateRect(window, NULL);
+			break; */
+		case WM_KEYDOWN:
+			/* switch (wParam) {
+			case KEY_P:
+				paused = !paused;
+				break;
+			case KEY_F1:
+				ui.visible = !ui.visible;
+				break;
+			case KEY_F2:
+				if (m_pCamera->type == Camera::CameraType::lookat) {
+					m_pCamera->type = Camera::CameraType::firstperson;
+				} else {
+					m_pCamera->type = Camera::CameraType::lookat;
+				}
+				break;
+			case KEY_ESCAPE:
+				PostQuitMessage(0);
+				break;
+			} */
 
-		if (camera.type == Camera::firstperson) {
-			switch (wParam) {
-			case KEY_W:
-				camera.keys.up = true;
-				break;
-			case KEY_S:
-				camera.keys.down = true;
-				break;
-			case KEY_A:
-				camera.keys.left = true;
-				break;
-			case KEY_D:
-				camera.keys.right = true;
-				break;
+			if (m_pCamera->type == Camera::firstperson) {
+				switch (wParam) {
+				case KEY_W:
+					m_pCamera->keys.up = true;
+					break;
+				case KEY_S:
+					m_pCamera->keys.down = true;
+					break;
+				case KEY_A:
+					m_pCamera->keys.left = true;
+					break;
+				case KEY_D:
+					m_pCamera->keys.right = true;
+					break;
+				}
 			}
-		}
 
-		keyPressed((uint32_t)wParam);
-		break;
-	case WM_KEYUP:
-		if (camera.type == Camera::firstperson) {
-			switch (wParam) {
-			case KEY_W:
-				camera.keys.up = false;
-				break;
-			case KEY_S:
-				camera.keys.down = false;
-				break;
-			case KEY_A:
-				camera.keys.left = false;
-				break;
-			case KEY_D:
-				camera.keys.right = false;
-				break;
+			// keyPressed((uint32_t)wParam);
+			break;
+		case WM_KEYUP:
+			if (m_pCamera->type == Camera::firstperson) {
+				switch (wParam) {
+				case KEY_W:
+					m_pCamera->keys.up = false;
+					break;
+				case KEY_S:
+					m_pCamera->keys.down = false;
+					break;
+				case KEY_A:
+					m_pCamera->keys.left = false;
+					break;
+				case KEY_D:
+					m_pCamera->keys.right = false;
+					break;
+				}
 			}
+			break;
+		case WM_LBUTTONDOWN:
+			m_MouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+			m_MouseState.buttons.left = true;
+			break;
+		case WM_RBUTTONDOWN:
+			m_MouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+			m_MouseState.buttons.right = true;
+			break;
+		case WM_MBUTTONDOWN:
+			m_MouseState.position = glm::vec2((float)LOWORD(lParam), (float)HIWORD(lParam));
+			m_MouseState.buttons.middle = true;
+			break;
+		case WM_LBUTTONUP:
+			m_MouseState.buttons.left = false;
+			break;
+		case WM_RBUTTONUP:
+			m_MouseState.buttons.right = false;
+			break;
+		case WM_MBUTTONUP:
+			m_MouseState.buttons.middle = false;
+			break;
+		case WM_MOUSEWHEEL: {
+			short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+			m_pCamera->translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
+			break;
 		}
-		break;
-	case WM_LBUTTONDOWN:
-		mouseState.position = glm::vec2((float)LOWORD(lParam),
-	(float)HIWORD(lParam)); mouseState.buttons.left = true; break; case
-	WM_RBUTTONDOWN: mouseState.position = glm::vec2((float)LOWORD(lParam),
-	(float)HIWORD(lParam)); mouseState.buttons.right = true; break; case
-	WM_MBUTTONDOWN: mouseState.position = glm::vec2((float)LOWORD(lParam),
-	(float)HIWORD(lParam)); mouseState.buttons.middle = true; break; case
-	WM_LBUTTONUP: mouseState.buttons.left = false; break; case WM_RBUTTONUP:
-		mouseState.buttons.right = false;
-		break;
-	case WM_MBUTTONUP:
-		mouseState.buttons.middle = false;
-		break;
-	case WM_MOUSEWHEEL: {
-		short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-		camera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
-		break;
-	}
-	case WM_MOUSEMOVE: {
-		handleMouseMove(LOWORD(lParam), HIWORD(lParam));
-		break;
-	}
-	case WM_SIZE:
-		if ((prepared) && (wParam != SIZE_MINIMIZED)) {
-			if ((resizing) || ((wParam == SIZE_MAXIMIZED) || (wParam ==
-	SIZE_RESTORED))) { destWidth = LOWORD(lParam); destHeight =
-	HIWORD(lParam); windowResize();
+		case WM_MOUSEMOVE: {
+			handleMouseMove(LOWORD(lParam), HIWORD(lParam));
+			break;
+		}
+		/* case WM_SIZE:
+			if ((prepared) && (wParam != SIZE_MINIMIZED)) {
+				if ((resizing) || ((wParam == SIZE_MAXIMIZED) || (wParam == SIZE_RESTORED))) {
+					destWidth = LOWORD(lParam);
+					destHeight = HIWORD(lParam);
+					windowResize();
+				}
 			}
+			break; */
+		case WM_GETMINMAXINFO: {
+			LPMINMAXINFO minMaxInfo = (LPMINMAXINFO)lParam;
+			minMaxInfo->ptMinTrackSize.x = 64;
+			minMaxInfo->ptMinTrackSize.y = 64;
+			break;
 		}
-		break;
-	case WM_GETMINMAXINFO: {
-		LPMINMAXINFO minMaxInfo = (LPMINMAXINFO)lParam;
-		minMaxInfo->ptMinTrackSize.x = 64;
-		minMaxInfo->ptMinTrackSize.y = 64;
-		break;
-	}
-	case WM_ENTERSIZEMOVE:
-		resizing = true;
-		break;
-	case WM_EXITSIZEMOVE:
-		resizing = false;
-		break;
+			/* case WM_ENTERSIZEMOVE:
+				resizing = true;
+				break;
+			case WM_EXITSIZEMOVE:
+				resizing = false;
+				break; */
+		}
 	}
 
-	OnHandleMessage(hWnd, uMsg, wParam, lParam);
-	*/
-	//}
+	// OnHandleMessage(hWnd, uMsg, wParam, lParam);
+
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }
 
@@ -251,4 +265,34 @@ bool SurfaceVulkan::isReady() {
 		return false;
 
 	return true;
+}
+
+void SurfaceVulkan::handleMouseMove(int32_t x, int32_t y) {
+	int32_t dx = (int32_t)m_MouseState.position.x - x;
+	int32_t dy = (int32_t)m_MouseState.position.y - y;
+
+	bool handled = false;
+
+	/* if (settings.overlay) {
+		ImGuiIO & io = ImGui::GetIO();
+		handled = io.WantCaptureMouse && ui.visible;
+	}
+	mouseMoved((float)x, (float)y, handled); */
+
+	if (handled) {
+		m_MouseState.position = glm::vec2((float)x, (float)y);
+		return;
+	}
+
+	if (m_MouseState.buttons.left) {
+		m_pCamera->rotate(
+			glm::vec3(dy * m_pCamera->rotationSpeed, -dx * m_pCamera->rotationSpeed, 0.0f));
+	}
+	if (m_MouseState.buttons.right) {
+		m_pCamera->translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
+	}
+	if (m_MouseState.buttons.middle) {
+		m_pCamera->translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
+	}
+	m_MouseState.position = glm::vec2((float)x, (float)y);
 }

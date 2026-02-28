@@ -6,6 +6,7 @@
 #include "vulkan/vulkan.h"
 #include "vulkan/vulkan_core.h"
 
+#include <cstddef>
 #include <map>
 #include <vector>
 
@@ -50,6 +51,8 @@ class RenderVulkan {
 
 		DepthStencilRes m_DepthStencilRes;
 
+		Camera * m_pCamera{nullptr};
+
 		/**********************************************************
 		资源
 		**********************************************************/
@@ -90,8 +93,6 @@ class RenderVulkan {
 		std::vector<VkSemaphore> vec_RenderSmph;
 
 		uint32_t m_CurrentFrameIndex{0};
-
-		Camera m_Camera;
 
 		std::vector<VkFramebuffer> vec_FrameBuffer;
 

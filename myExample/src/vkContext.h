@@ -11,6 +11,7 @@
 
 #include "vulkan/vulkan.h"
 
+#include <cstdint>
 #include <vector>
 
 class VkContext {
@@ -78,6 +79,10 @@ class VkContext {
 			VK_FORMAT_D16_UNORM_S8_UINT,
 		};
 
+		int m_WindowWidth{1000};
+
+		int m_WindowHeight{800};
+
 		/**********************************************************
 		资源
 		**********************************************************/
@@ -90,6 +95,8 @@ class VkContext {
 		SwapchainVulkan * m_SwapchainVulkanInstance{nullptr};
 
 		RenderVulkan * m_RenderVulkanInstance{nullptr};
+
+		Camera m_Camera;
 
 	private:
 		bool init();

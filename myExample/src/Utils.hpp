@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/detail/type_vec.hpp"
 #include "vulkan/vulkan.h"
 #include <glm/glm.hpp>
 
@@ -21,8 +22,9 @@ public:
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
 struct Vertex {
-		float position[3];
-		float color[3];
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec3 color;
 };
 
 struct ShaderData {

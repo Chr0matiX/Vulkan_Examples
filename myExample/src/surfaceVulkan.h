@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WinCommon.h"
+#include "camera.hpp"
 
 #include "Utils.hpp"
 
@@ -22,6 +23,12 @@ class SurfaceVulkan {
 
 		std::string m_WindowsTitle;
 
+		static Camera * m_pCamera;
+
+		int m_WindowWidth{1000};
+
+		int m_WindowHeight{800};
+
 		/**********************************************************
 		资源
 		**********************************************************/
@@ -29,9 +36,14 @@ class SurfaceVulkan {
 
 		VkSurfaceKHR m_SurfaceKHR{VK_NULL_HANDLE};
 
-		int m_WindowWidth{1000};
-
-		int m_WindowHeight{800};
+		static struct MouseState {
+				struct {
+						bool left = false;
+						bool right = false;
+						bool middle = false;
+				} buttons;
+				glm::vec2 position;
+		} m_MouseState;
 
 	private:
 		bool init();
@@ -47,4 +59,6 @@ class SurfaceVulkan {
 		bool createWindow();
 
 		bool isReady();
+
+		static void handleMouseMove(int32_t x, int32_t y);
 };

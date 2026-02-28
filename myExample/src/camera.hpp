@@ -6,6 +6,8 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
+#pragma once
+
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -58,8 +60,8 @@ public:
 	glm::vec3 position = glm::vec3();
 	glm::vec4 viewPos = glm::vec4();
 
-	float rotationSpeed = 1.0f;
-	float movementSpeed = 1.0f;
+	float rotationSpeed = 0.2f;
+	float movementSpeed = 4.0f;
 
 	bool updated = true;
 	bool flipY = false;

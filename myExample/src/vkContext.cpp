@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 
@@ -65,6 +66,11 @@ bool VkContext::init() {
 
 		CHECK_VK_RESULT(vkCreateInstance(&vkInstanceCI, nullptr, &m_VkInstance));
 
+		m_Camera.type = Camera::CameraType::firstperson;
+		m_Camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+		m_Camera.setRotation(glm::vec3(0.0f));
+		m_Camera.setPerspective(60.0f, (float)m_WindowWidth / (float)m_WindowHeight, 0.0f, 256.0f);
+
 		// surface
 		{
 			m_SurfaceVulkanInstance = new SurfaceVulkan();
@@ -72,6 +78,9 @@ bool VkContext::init() {
 			m_SurfaceVulkanInstance->m_VkInstance = m_VkInstance;
 			m_SurfaceVulkanInstance->m_MainWindowsClassName = m_MainWindowsClassName;
 			m_SurfaceVulkanInstance->m_WindowsTitle = m_WindowsTitle;
+			m_SurfaceVulkanInstance->m_WindowWidth = m_WindowWidth;
+			m_SurfaceVulkanInstance->m_WindowHeight = m_WindowHeight;
+			m_SurfaceVulkanInstance->m_pCamera = &m_Camera;
 
 			if (!m_SurfaceVulkanInstance->init())
 				break;
@@ -115,21 +124,28 @@ bool VkContext::init() {
 			m_RenderVulkanInstance->vec_Vertex = {
 				{
 					{1.0f, 1.0f, 0.0f},
+					{0.0f, 0.0f, -1.0f},
 					{1.0f, 0.0f, 0.0f},
 				},
 				{
 					{-1.0f, 1.0f, 0.0f},
+					{0.0f, 0.0f, -1.0f},
 					{0.0f, 1.0f, 0.0f},
 				},
 				{
 					{0.0f, -1.0f, 0.0f},
+					{0.0f, 0.0f, -1.0f},
 					{0.0f, 0.0f, 1.0f},
 				},
+				{
+					{-2.0f, -1.0f, 0.0f},
+					{0.0f, 0.0f, -1.0f},
+					{1.0f, 0.0f, 0.0f},
+				},
 			};
+			// 
 			m_RenderVulkanInstance->vec_Index = {
-				0,
-				1,
-				2,
+				0, 1, 2, 1, 2, 3,
 			};
 			m_RenderVulkanInstance->m_renderPass = m_SwapchainVulkanInstance->m_RenderPass;
 			m_RenderVulkanInstance->m_QueueIndex = {
@@ -148,6 +164,7 @@ bool VkContext::init() {
 			m_RenderVulkanInstance->m_WindowHeight = m_SurfaceVulkanInstance->m_WindowHeight;
 			m_RenderVulkanInstance->m_DepthStencilRes =
 				m_SwapchainVulkanInstance->m_DepthStencilRes;
+			m_RenderVulkanInstance->m_pCamera = &m_Camera;
 
 			if (!m_RenderVulkanInstance->init())
 				break;
@@ -291,7 +308,16 @@ void VkContext::startRenderLoop() {
 			}
 		}
 
-		if (!IsIconic(m_SurfaceVulkanInstance->m_WindowHandle))
+		if (!IsIconic(m_SurfaceVulkanInstance->m_WindowHandle)) {
+			auto tStart = std::chrono::high_resolution_clock::now();
+
 			m_RenderVulkanInstance->renderNext();
+
+			auto tEnd = std::chrono::high_resolution_clock::now();
+			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+
+			const auto & frameTimer = (float)tDiff / 1000.0f;
+			m_Camera.update(frameTimer);
+		}
 	}
 }

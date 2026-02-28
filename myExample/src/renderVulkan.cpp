@@ -1,17 +1,13 @@
 #include "renderVulkan.h"
 #include "vulkan/vulkan_core.h"
 
+#include <cstdint>
 #include <fstream>
 
 bool RenderVulkan::init() {
 	bool rtn = false;
 
 	do {
-		m_Camera.type = Camera::CameraType::lookat;
-		m_Camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-		m_Camera.setRotation(glm::vec3(0.0f));
-		m_Camera.setPerspective(60.0f, (float)m_WindowWidth / (float)m_WindowHeight, 1.0f, 256.0f);
-
 		if (!prepare())
 			break;
 
@@ -410,6 +406,7 @@ bool RenderVulkan::createPipeline() {
 	VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
 		.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		//.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,
 	};
 
 	// Rasterization state
@@ -481,17 +478,22 @@ bool RenderVulkan::createPipeline() {
 		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 	};
 
+	// 对应 GLSL 中的 location
 	std::vector<VkVertexInputAttributeDescription> vertexInputAttributs{
-		// Attribute location 0: Position
 		{
 			.location = 0,
 			.binding = 0,
 			.format = VK_FORMAT_R32G32B32_SFLOAT,
-			.offset = offsetof(Vertex, position),
+			.offset = offsetof(Vertex, pos),
 		},
-		// Attribute location 1: Color
 		{
 			.location = 1,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, normal),
+		},
+		{
+			.location = 2,
 			.binding = 0,
 			.format = VK_FORMAT_R32G32B32_SFLOAT,
 			.offset = offsetof(Vertex, color),
@@ -502,7 +504,7 @@ bool RenderVulkan::createPipeline() {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 		.vertexBindingDescriptionCount = 1,
 		.pVertexBindingDescriptions = &vertexInputBinding,
-		.vertexAttributeDescriptionCount = 2,
+		.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributs.size()),
 		.pVertexAttributeDescriptions = vertexInputAttributs.data(),
 	};
 
@@ -658,9 +660,9 @@ bool RenderVulkan::renderNext() {
 	}
 
 	ShaderData shaderData{
-		.projectionMatrix = m_Camera.matrices.perspective,
+		.projectionMatrix = m_pCamera->matrices.perspective,
 		.modelMatrix = glm::mat4(1.0f),
-		.viewMatrix = m_Camera.matrices.view,
+		.viewMatrix = m_pCamera->matrices.view,
 	};
 
 	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
@@ -776,7 +778,7 @@ bool RenderVulkan::renderNext() {
 bool RenderVulkan::isReady() {
 	if (vec_Vertex.empty() || vec_Index.empty() || (m_renderPass == VK_NULL_HANDLE) ||
 		(m_LogicalDevice == VK_NULL_HANDLE) || map_QIndex2Queue.empty() || vec_ImageView.empty() ||
-		(m_Swapchain == VK_NULL_HANDLE))
+		(m_Swapchain == VK_NULL_HANDLE) || (m_pCamera != nullptr))
 		return false;
 
 	return true;
