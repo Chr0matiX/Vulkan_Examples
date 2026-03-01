@@ -1,9 +1,9 @@
 #pragma once
 
-#include "WinCommon.h"
+#include "../WinCommon.h"
 #include "camera.hpp"
 
-#include "Utils.hpp"
+#include "../Utils.hpp"
 
 #include "vulkan/vulkan.h"
 

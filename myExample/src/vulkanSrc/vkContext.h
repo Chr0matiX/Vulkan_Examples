@@ -1,8 +1,8 @@
 #pragma once
 
-#include "WinCommon.h"
+#include "../WinCommon.h"
 
-#include "Utils.hpp"
+#include "../Utils.hpp"
 
 #include "deviceVulkan.h"
 #include "renderVulkan.h"

@@ -1,5 +1,4 @@
 #include "renderVulkan.h"
-#include "vulkan/vulkan_core.h"
 
 #include <cstdint>
 #include <fstream>

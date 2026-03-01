@@ -38,7 +38,9 @@ IF (NOT Vulkan_FOUND)
 	message(FATAL_ERROR "Could not find Vulkan library!")
 ENDIF()
 
-file(GLOB SOURCE ./src/*.cpp ./ref/*.*)
+#file(GLOB SOURCE ./src/*.cpp ./ref/*.*)
+# 下面这个是递归扫描
+file(GLOB_RECURSE SOURCE ./src/*.cpp ./src/*.hpp)
 
 add_executable(${NAME} ${SOURCE})
 target_link_libraries(${NAME} ${Vulkan_LIBRARY})
