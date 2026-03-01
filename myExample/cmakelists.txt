@@ -40,7 +40,7 @@ ENDIF()
 
 #file(GLOB SOURCE ./src/*.cpp ./ref/*.*)
 # 下面这个是递归扫描
-file(GLOB_RECURSE SOURCE ./src/*.cpp ./src/*.hpp)
+file(GLOB_RECURSE SOURCE ./src/*.cpp ./src/*.hpp ./src/*.inl)
 
 add_executable(${NAME} ${SOURCE})
 target_link_libraries(${NAME} ${Vulkan_LIBRARY})
