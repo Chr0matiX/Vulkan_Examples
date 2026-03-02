@@ -14,19 +14,37 @@ class GVector {
 		static const GVector yAxis;
 		static const GVector zAxis;
 
+		GVector() : vec{0, 0, 0} {}
 		GVector(const double x, const double y, const double z) : vec{x, y, z} {}
+		GVector(const glm::dvec3 & dVec3) : vec{dVec3} {}
 
 		void set(const double x, const double y, const double z) noexcept { vec = {x, y, z}; }
 
 	public:
-		template <typename T> GVector operator*(const T value) {
-			glm::dvec3 dvec3 = vec;
-			*value;
+		template <typename T> GVector operator*(const T value) const {
+			return GVector(vec * static_cast<double>(value));
+		}
+
+		GVector operator+(const GVector & other) const noexcept { return GVector(vec + other.vec); }
+
+		GVector operator-(const GVector & other) const noexcept { return GVector(vec - other.vec); }
+
+		double dot(const GVector & other) const noexcept { return glm::dot(vec, other.vec); }
+
+		GVector cross(const GVector & other) const noexcept {
+			return GVector(glm::cross(vec, other.vec));
 		}
 
 		double getLength() const noexcept;
 
-		GVector & normalize();
+		GVector & normalize() noexcept;
+
+		GVector getNormalize() const noexcept;
+
+		double angleTo(const GVector & other, const GVector vecNormal) const noexcept;
+		double angleTo(const GVector & other) const noexcept {
+			return angleTo(other, cross(other));
+		}
 
 		glm::dvec3 to_GlmVec3() const noexcept;
 
