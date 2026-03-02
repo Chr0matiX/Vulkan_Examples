@@ -24,6 +24,8 @@ class GPoint {
 
 		GPoint & operator+=(const GVector & vec) noexcept;
 
+		double distanceTo(const GPoint & pt) const noexcept;
+
 		glm::dvec3 to_GlmVec3() const noexcept;
 
 		GPoint & transformBy(const GMatrix & mtx) noexcept;

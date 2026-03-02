@@ -22,6 +22,10 @@ GPoint & GPoint::operator+=(const GVector & vec) noexcept {
 	return *this;
 }
 
+double GPoint::distanceTo(const GPoint & pt) const noexcept {
+	return (*this - pt).getLength();
+}
+
 glm::dvec3 GPoint::to_GlmVec3() const noexcept {
 	return position;
 }
