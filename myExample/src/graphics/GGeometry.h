@@ -33,7 +33,7 @@ class GCone : public GGeometry {
 		GCone(const GPoint & ptBtmCenter, const double radius, const double height,
 			  const double halfAngle);
 
-		std::vector<GCurve*> getCircle(const double height) const noexcept;
+		std::vector<std::unique_ptr<GCurve>> getCircle(const double height) const noexcept;
 
 		VertexInfo getVertex() const noexcept override;
 };
