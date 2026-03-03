@@ -55,10 +55,6 @@ double GVector::angleTo(const GVector & other, const GVector vecNormal) const no
 	return angle;
 }
 
-glm::dvec3 GVector::to_GlmVec3() const noexcept {
-	return vec;
-}
-
 GVector & GVector::transformBy(const GMatrix & mtx) noexcept {
 	glm::dvec4 dVec4{vec.x, vec.y, vec.z, 0.0f};
 	mtx.dot(dVec4);

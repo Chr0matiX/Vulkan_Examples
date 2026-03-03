@@ -26,7 +26,10 @@ class GPoint {
 
 		double distanceTo(const GPoint & pt) const noexcept;
 
-		glm::dvec3 to_GlmVec3() const noexcept;
+		glm::vec3 to_GlmVec3() const noexcept {
+			return glm::vec3{static_cast<float>(position.x), static_cast<float>(position.y),
+							 static_cast<float>(position.z)};
+		}
 
 		GPoint & transformBy(const GMatrix & mtx) noexcept;
 };

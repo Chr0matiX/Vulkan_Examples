@@ -33,7 +33,7 @@ class GCurve {
 		virtual std::vector<GPoint> getVertex() const noexcept = 0;
 };
 
-class GLineSeg final : GCurve {
+class GLineSeg final : public GCurve {
 	private:
 		GPoint m_PtBegin;
 		GPoint m_PtEnd;
@@ -72,7 +72,7 @@ class GLineSeg final : GCurve {
 		}
 };
 
-class GArc final : GCurve {
+class GArc final : public GCurve {
 	private:
 		GPoint m_PtCenter;
 		double m_Radius{0.0f};

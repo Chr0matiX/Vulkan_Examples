@@ -7,6 +7,7 @@
 #include <ctime>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #define SINGLETON_CLASS(className)                     \
 private:                                               \
@@ -25,6 +26,11 @@ struct Vertex {
 		glm::vec3 pos;
 		glm::vec3 normal;
 		glm::vec3 color;
+};
+
+struct VertexInfo {
+		std::vector<Vertex> vec_Vertex;
+		std::vector<uint32_t> vec_Index;
 };
 
 struct ShaderData {
@@ -104,4 +110,19 @@ inline int8_t compleDouble(const double v1, const double v2, const double tol = 
 		return 0;
 
 	return v1 < v2 ? -1 : 1;
+}
+
+inline glm::vec3 getDebugColor(const glm::dvec3 & position) {
+	double gridX = std::floor(position.x);
+	double gridY = std::floor(position.y);
+	double gridZ = std::floor(position.z);
+
+	auto hash = [](double x, double y, double z) {
+		double dot_product = x * 12.9898 + y * 78.233 + z * 43.543;
+		return glm::fract(std::sin(dot_product) * 43758.5453);
+	};
+
+	return glm::vec3(static_cast<float>(hash(gridX, gridY, gridZ)),
+					 static_cast<float>(hash(gridX + 1.1, gridY + 2.2, gridZ + 3.3)),
+					 static_cast<float>(hash(gridX + 4.4, gridY + 5.5, gridZ + 6.6)));
 }

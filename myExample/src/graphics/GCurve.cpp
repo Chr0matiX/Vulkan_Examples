@@ -41,12 +41,11 @@ std::vector<GPoint> GArc::getVertex() const noexcept {
 		return {};
 
 	std::vector<GPoint> vec_Pt;
-	for (uint8_t i = 0; i < maxFragCount; ++i) {
+	for (uint8_t i = 0; i < maxFragCount + 1; ++i) {
 		GPoint ptTmp{m_PtCenter};
 		GVector vecTmp{m_VecBegin};
 
-		ptTmp +=
-			vecTmp.transformBy(GMatrix().setToRotate(m_PtCenter, m_VecNormal, (i + 1) * fragAngle));
+		ptTmp += vecTmp.transformBy(GMatrix().setToRotate(m_PtCenter, m_VecNormal, i * fragAngle));
 
 		vec_Pt.emplace_back(ptTmp);
 	}

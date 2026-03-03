@@ -13,9 +13,14 @@ GMatrix & GMatrix::setToIdentity() noexcept {
 }
 
 GMatrix & GMatrix::setToMove(const GVector & vec) noexcept {
-	m_Mat[3][0] = vec.vec.x;
-	m_Mat[3][1] = vec.vec.y;
-	m_Mat[3][2] = vec.vec.z;
+	setToIdentity();
+
+	if (compleDouble(vec.getLength(), 0) > 0) {
+		m_Mat[3][0] = vec.vec.x;
+		m_Mat[3][1] = vec.vec.y;
+		m_Mat[3][2] = vec.vec.z;
+	}
+
 	return *this;
 }
 
@@ -23,31 +28,33 @@ GMatrix & GMatrix::setToRotate(const GPoint & ptCenter, const GVector & vecNorma
 							   const double angle) noexcept {
 	setToIdentity();
 
-	const double c = std::cos(angle);
-	const double s = std::sin(angle);
-	const double t = 1.0 - c;
+	if (compleDouble(angle, 0) > 0) {
+		const double c = std::cos(angle);
+		const double s = std::sin(angle);
+		const double t = 1.0 - c;
 
-	m_Mat[0][0] = t * vecNormal.vec.x * vecNormal.vec.x + c;
-	m_Mat[0][1] = t * vecNormal.vec.x * vecNormal.vec.y + s * vecNormal.vec.z;
-	m_Mat[0][2] = t * vecNormal.vec.x * vecNormal.vec.z - s * vecNormal.vec.y;
+		m_Mat[0][0] = t * vecNormal.vec.x * vecNormal.vec.x + c;
+		m_Mat[0][1] = t * vecNormal.vec.x * vecNormal.vec.y + s * vecNormal.vec.z;
+		m_Mat[0][2] = t * vecNormal.vec.x * vecNormal.vec.z - s * vecNormal.vec.y;
 
-	m_Mat[1][0] = t * vecNormal.vec.x * vecNormal.vec.y - s * vecNormal.vec.z;
-	m_Mat[1][1] = t * vecNormal.vec.y * vecNormal.vec.y + c;
-	m_Mat[1][2] = t * vecNormal.vec.y * vecNormal.vec.z + s * vecNormal.vec.x;
+		m_Mat[1][0] = t * vecNormal.vec.x * vecNormal.vec.y - s * vecNormal.vec.z;
+		m_Mat[1][1] = t * vecNormal.vec.y * vecNormal.vec.y + c;
+		m_Mat[1][2] = t * vecNormal.vec.y * vecNormal.vec.z + s * vecNormal.vec.x;
 
-	m_Mat[2][0] = t * vecNormal.vec.x * vecNormal.vec.z + s * vecNormal.vec.y;
-	m_Mat[2][1] = t * vecNormal.vec.y * vecNormal.vec.z - s * vecNormal.vec.x;
-	m_Mat[2][2] = t * vecNormal.vec.z * vecNormal.vec.z + c;
+		m_Mat[2][0] = t * vecNormal.vec.x * vecNormal.vec.z + s * vecNormal.vec.y;
+		m_Mat[2][1] = t * vecNormal.vec.y * vecNormal.vec.z - s * vecNormal.vec.x;
+		m_Mat[2][2] = t * vecNormal.vec.z * vecNormal.vec.z + c;
 
-	m_Mat[3][0] = ptCenter.position.x -
-				  (m_Mat[0][0] * ptCenter.position.x + m_Mat[1][0] * ptCenter.position.y +
-				   m_Mat[2][0] * ptCenter.position.z);
-	m_Mat[3][1] = ptCenter.position.y -
-				  (m_Mat[0][1] * ptCenter.position.x + m_Mat[1][1] * ptCenter.position.y +
-				   m_Mat[2][1] * ptCenter.position.z);
-	m_Mat[3][2] = ptCenter.position.z -
-				  (m_Mat[0][2] * ptCenter.position.x + m_Mat[1][2] * ptCenter.position.y +
-				   m_Mat[2][2] * ptCenter.position.z);
+		m_Mat[3][0] = ptCenter.position.x -
+					  (m_Mat[0][0] * ptCenter.position.x + m_Mat[1][0] * ptCenter.position.y +
+					   m_Mat[2][0] * ptCenter.position.z);
+		m_Mat[3][1] = ptCenter.position.y -
+					  (m_Mat[0][1] * ptCenter.position.x + m_Mat[1][1] * ptCenter.position.y +
+					   m_Mat[2][1] * ptCenter.position.z);
+		m_Mat[3][2] = ptCenter.position.z -
+					  (m_Mat[0][2] * ptCenter.position.x + m_Mat[1][2] * ptCenter.position.y +
+					   m_Mat[2][2] * ptCenter.position.z);
+	}
 
 	return *this;
 }

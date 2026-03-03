@@ -25,9 +25,15 @@ class GVector {
 			return GVector(vec * static_cast<double>(value));
 		}
 
+		template <typename T> GVector operator*=(const T value) {
+			return vec = vec * static_cast<double>(value);
+		}
+
 		GVector operator+(const GVector & other) const noexcept { return GVector(vec + other.vec); }
+		GVector operator+=(const GVector & other) noexcept { return vec = vec + other.vec; }
 
 		GVector operator-(const GVector & other) const noexcept { return GVector(vec - other.vec); }
+		GVector operator-=(const GVector & other) noexcept { return vec = vec - other.vec; }
 
 		double dot(const GVector & other) const noexcept { return glm::dot(vec, other.vec); }
 
@@ -46,7 +52,10 @@ class GVector {
 			return angleTo(other, cross(other));
 		}
 
-		glm::dvec3 to_GlmVec3() const noexcept;
+		glm::vec3 to_GlmVec3() const noexcept {
+			return glm::vec3{static_cast<float>(vec.x), static_cast<float>(vec.y),
+							 static_cast<float>(vec.z)};
+		}
 
 		GVector & transformBy(const GMatrix & mtx) noexcept;
 };

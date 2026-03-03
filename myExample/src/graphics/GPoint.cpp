@@ -26,10 +26,6 @@ double GPoint::distanceTo(const GPoint & pt) const noexcept {
 	return (*this - pt).getLength();
 }
 
-glm::dvec3 GPoint::to_GlmVec3() const noexcept {
-	return position;
-}
-
 GPoint & GPoint::transformBy(const GMatrix & mtx) noexcept {
 	glm::dvec4 dVec4{position.x, position.y, position.z, 1.0f};
 	mtx.dot(dVec4);
