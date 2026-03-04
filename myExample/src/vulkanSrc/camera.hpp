@@ -25,22 +25,24 @@ class Camera {
 
 	private:
 		// const
-		const double rotationSpeed = 2.0;
-		const double movementSpeed = 40.0;
-		const double zoomSpeed = 10.0;
+		static inline const double rotationSpeed = 2.0;
+		static inline const double movementSpeed = 40.0;
+		static inline const double zoomSpeed = 10.0;
 
-		const glm::dvec3 worldUp{0.0, 0.0, 1.0};
+		static inline const glm::dvec3 worldUp{0.0, 0.0, 1.0};
 
 		//
-		double near{0.0};
-		double far{0.0};
+		double dNear{0.0};
+		double dFar{0.0};
 
 		glm::dvec3 ptPos;
 		glm::dvec3 ptTarg;
 
 		double viewSize{0.0};
-		double aspectRatio{0.0}; // 宽:高
+		double windowW{0.0};
+		double windowH{0.0};
 
+		//
 		bool updated{false};
 
 		glm::dvec3 camRight;
@@ -50,18 +52,30 @@ class Camera {
 		double yaw = 0;	  // 水平
 		double pitch = 0; // 俯仰
 
+		double aspectRatio{0.0}; // 宽:高
+
 	private:
 		bool moving() const { return keys.left || keys.right || keys.up || keys.down; }
 
 	public:
-		Camera(const glm::dvec3 & pos, const glm::dvec3 & targ, const double & n, const double & f,
-			   const double & size, const double & whRatio)
-			: ptPos(pos), ptTarg(targ), near(n), far(f), viewSize(size), aspectRatio(whRatio) {}
+		Camera() {}
+		Camera(const glm::dvec3 & pos, const glm::dvec3 & targ, const double n, const double f,
+			   const double size, const double wW, const double wH)
+			: ptPos(pos), ptTarg(targ), dNear(n), dFar(f), viewSize(size), windowW(wW), windowH(wH),
+			  aspectRatio(wW / wH) {
+			camForward = glm::normalize(ptTarg - ptPos);
+			camRight = glm::normalize(glm::cross(camForward, worldUp));
+
+			glm::dvec3 dir = ptPos - ptTarg;
+			double r = glm::length(dir);
+			pitch = glm::degrees(asin(dir.z / r));
+			yaw = glm::degrees(atan2(dir.y, dir.x));
+		}
 
 		glm::mat4 getPerspectiveMtx() {
 			double halfW = viewSize * aspectRatio;
 			double halfH = viewSize;
-			glm::mat4 proj = glm::ortho(-halfW, halfW, halfH, -halfH, near, far);
+			glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, dNear, dFar);
 			proj[1][1] *= -1.0f;
 			return proj;
 		}
@@ -126,7 +140,10 @@ class Camera {
 			glm::dvec3 right = glm::normalize(glm::cross(forward, worldUp));
 			glm::dvec3 up = glm::cross(right, forward);
 
-			glm::dvec3 shift = right * dx + up * dy;
+			double worldDX = (dx / windowW) * viewSize * aspectRatio * 2.0;
+			double worldDY = (dy / windowH) * viewSize * 2.0;
+
+			glm::dvec3 shift = right * worldDX + up * worldDY;
 
 			shift.z = 0.0;
 

@@ -74,7 +74,15 @@ bool VkContext::init() {
 		m_Camera.setOrthographic(10.0f, (float)m_WindowWidth / (float)m_WindowHeight, -10000.0f,
 								 10000.0f); */
 
-		m_Camera = {};
+		m_Camera = Camera{
+			{-3000.0, -3000.0, 3000},
+			{0.0, 0.0, 1500},
+			-100000.0,
+			100000.0,
+			1500,
+			static_cast<double>(m_WindowWidth),
+			static_cast<double>(m_WindowHeight),
+		};
 
 		// surface
 		{

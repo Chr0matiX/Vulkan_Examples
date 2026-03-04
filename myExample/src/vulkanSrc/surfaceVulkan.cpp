@@ -130,11 +130,12 @@ LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam,
 		case WM_MBUTTONUP:
 			m_MouseState.buttons.middle = false;
 			break;
-		/* case WM_MOUSEWHEEL: {
+		case WM_MOUSEWHEEL: {
 			short wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-			m_pCamera->translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
+			double delta = static_cast<double>(wheelDelta) / WHEEL_DELTA;
+			m_pCamera->zoom(delta);
 			break;
-		} */
+		}
 		case WM_MOUSEMOVE: {
 			handleMouseMove(LOWORD(lParam), HIWORD(lParam));
 			break;
@@ -147,8 +148,6 @@ LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam,
 		}
 		}
 	}
-
-	// OnHandleMessage(hWnd, uMsg, wParam, lParam);
 
 	return (DefWindowProc(hWnd, uMsg, wParam, lParam));
 }

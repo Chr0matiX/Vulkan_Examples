@@ -659,9 +659,9 @@ bool RenderVulkan::renderNext() {
 	}
 
 	ShaderData shaderData{
-		.projectionMatrix = m_pCamera->matrices.perspective,
+		.projectionMatrix = m_pCamera->getPerspectiveMtx(),
 		.modelMatrix = glm::mat4(1.0f),
-		.viewMatrix = m_pCamera->matrices.view,
+		.viewMatrix = m_pCamera->getViewMtx(),
 	};
 
 	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
