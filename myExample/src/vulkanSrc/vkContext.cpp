@@ -13,7 +13,7 @@ VkContext * VkContext::m_VkContextInstance{nullptr};
 VkContext & VkContext::getInstance() {
 	if (m_VkContextInstance == nullptr) {
 		m_VkContextInstance = new VkContext();
-		assert(m_VkContextInstance->init());
+		// assert(m_VkContextInstance->init());
 	}
 
 	return *m_VkContextInstance;
@@ -66,10 +66,15 @@ bool VkContext::init() {
 
 		CHECK_VK_RESULT(vkCreateInstance(&vkInstanceCI, nullptr, &m_VkInstance));
 
-		m_Camera.type = Camera::CameraType::firstperson;
+		/* m_Camera.type = Camera::CameraType::lookat;
 		m_Camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
 		m_Camera.setRotation(glm::vec3(0.0f));
-		m_Camera.setPerspective(60.0f, (float)m_WindowWidth / (float)m_WindowHeight, 0.0f, 256.0f);
+		// m_Camera.setPerspective(60.0f, (float)m_WindowWidth / (float)m_WindowHeight, 0.0f,
+		// 256.0f);
+		m_Camera.setOrthographic(10.0f, (float)m_WindowWidth / (float)m_WindowHeight, -10000.0f,
+								 10000.0f); */
+
+		m_Camera = {};
 
 		// surface
 		{
@@ -121,7 +126,7 @@ bool VkContext::init() {
 		// render
 		{
 			m_RenderVulkanInstance = new RenderVulkan();
-			m_RenderVulkanInstance->vec_Vertex = {
+			/* m_RenderVulkanInstance->vec_Vertex = {
 				{
 					{1.0f, 1.0f, 0.0f},
 					{0.0f, 0.0f, -1.0f},
@@ -143,10 +148,11 @@ bool VkContext::init() {
 					{1.0f, 0.0f, 0.0f},
 				},
 			};
-			// 
 			m_RenderVulkanInstance->vec_Index = {
 				0, 1, 2, 1, 2, 3,
-			};
+			}; */
+			m_RenderVulkanInstance->vec_Vertex = m_VecVertex;
+			m_RenderVulkanInstance->vec_Index = m_VecIndex;
 			m_RenderVulkanInstance->m_renderPass = m_SwapchainVulkanInstance->m_RenderPass;
 			m_RenderVulkanInstance->m_QueueIndex = {
 				.m_Graphics = m_DeviceVulkanInstance->m_QueueIndex.getGraphics(),

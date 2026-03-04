@@ -25,7 +25,7 @@ void RenderVulkan::destroy() {
 }
 
 bool RenderVulkan::prepare() {
-	// 同步对象（后面再实现）
+	// 同步对象
 	if (!createSyncObj())
 		return false;
 
@@ -677,7 +677,7 @@ bool RenderVulkan::renderNext() {
 	CHECK_VK_RESULT(vkBeginCommandBuffer(currentCmdBuffer, &cmdBufferBeginInfo));
 
 	VkClearValue clearValues[2]{};
-	clearValues[0].color = {{0.0f, 0.0f, 0.2f, 1.0f}};
+	clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 	clearValues[1].depthStencil = {1.0f, 0};
 
 	VkRenderPassBeginInfo renderPassBeginInfo{

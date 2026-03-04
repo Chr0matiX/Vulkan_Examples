@@ -98,9 +98,10 @@ class VkContext {
 
 		Camera m_Camera;
 
-	private:
-		bool init();
+		std::vector<Vertex> m_VecVertex;
+		std::vector<uint32_t> m_VecIndex;
 
+	private:
 		// 输入事件回调
 		static VkBool32
 		debugUtilsMessCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -116,6 +117,8 @@ class VkContext {
 		void setDebugUtils(VkInstanceCreateInfo & vkInstanceCI) const;
 
 	public:
+		bool init();
+
 		bool valid();
 
 		void destroy();
@@ -123,4 +126,7 @@ class VkContext {
 		static VkContext & getInstance();
 
 		void startRenderLoop();
+
+		void setVertex(const std::vector<Vertex> & vec_Vertex) { m_VecVertex = vec_Vertex; }
+		void setIndex(const std::vector<uint32_t> & vec_Index) { m_VecIndex = vec_Index; }
 };

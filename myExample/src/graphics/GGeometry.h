@@ -6,6 +6,7 @@
 #include "GVector.h"
 
 #include <vector>
+#include <memory>
 
 class GGeometry {
 	public:

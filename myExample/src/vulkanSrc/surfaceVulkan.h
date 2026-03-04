@@ -42,7 +42,7 @@ class SurfaceVulkan {
 						bool right = false;
 						bool middle = false;
 				} buttons;
-				glm::vec2 position;
+				glm::dvec2 position;
 		} m_MouseState;
 
 	private:

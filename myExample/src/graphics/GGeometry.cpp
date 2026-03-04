@@ -1,5 +1,6 @@
 #include "GGeometry.h"
 
+#include <cassert>
 #include <optional>
 
 GCone::GCone(const GPoint & ptBtmCenter, const double radius, const double height,
@@ -77,15 +78,13 @@ VertexInfo GCone::getVertex() const noexcept {
 
 			std::vector<std::unique_ptr<GCurve>> vec_BtmCurve = getCircle(m_BtmH);
 
-			std::optional<uint32_t> idxFstVert;
-			uint32_t idxFstBtmVert{0};
-			// GPoint ptFstVert;
-			GVector vecFstVert;
+			std::optional<uint32_t> idxVertFst;
+			uint32_t idxVertFstBtm{0};
+			GVector vecVertFst;
 
-			uint32_t idxPreVert{0};
-			uint32_t idxPreVertBtm{0};
-			// GPoint ptPreVert;
-			GVector vecPreVert;
+			uint32_t idxVertPre{0};
+			uint32_t idxVertPreBtm{0};
+			GVector vecVertPre;
 
 			for (const auto & crv : vec_BtmCurve) {
 				const auto & vec_PtVertTmp = crv->getVertex();
@@ -95,93 +94,99 @@ VertexInfo GCone::getVertex() const noexcept {
 					const auto & vecTan = crv->getTangentAt(ptCurr);
 					const auto & vecVertNormal = vecTan.cross(m_PtApex - ptCurr).normalize();
 
+					// 侧面圆周当前顶点
 					vertInfo.vec_Vertex.emplace_back(Vertex{
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecVertNormal.to_GlmVec3(),
 						.color = color,
 					});
-					const uint32_t & idxCurrVert =
+					const uint32_t & idxVertCurr =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
+					// 底面圆周当前顶点
 					vertInfo.vec_Vertex.emplace_back(Vertex{
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecBtmNormal,
 						.color = color,
 					});
-					const uint32_t & idxCurrBtmVert =
+					const uint32_t & idxVertCurrBtm =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-					if (!idxFstVert.has_value()) {
-						idxFstVert = idxCurrVert;
-						idxFstBtmVert = idxCurrBtmVert;
-						vecFstVert = vecVertNormal;
+					if (!idxVertFst.has_value()) {
+						idxVertFst = idxVertCurr;
+						idxVertFstBtm = idxVertCurrBtm;
+						vecVertFst = vecVertNormal;
 
-						idxPreVert = idxCurrVert;
-						idxPreVertBtm = idxCurrBtmVert;
-						vecPreVert = vecVertNormal;
+						idxVertPre = idxVertCurr;
+						idxVertPreBtm = idxVertCurrBtm;
+						vecVertPre = vecVertNormal;
 						continue;
 					}
 
+					// 锥顶顶点
 					vertInfo.vec_Vertex.emplace_back(Vertex{
 						.pos = m_PtApex.to_GlmVec3(),
-						.normal = (vecPreVert + vecVertNormal).normalize().to_GlmVec3(),
+						.normal = (vecVertPre + vecVertNormal).normalize().to_GlmVec3(),
 						.color = color,
 					});
-
-					const uint32_t & idxCurrApexVert =
+					const uint32_t & idxVertCurrApex =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-					vertInfo.vec_Index.emplace_back(idxCurrVert);
-					vertInfo.vec_Index.emplace_back(idxPreVert);
-					vertInfo.vec_Index.emplace_back(idxCurrApexVert);
+					vertInfo.vec_Index.emplace_back(idxVertPre);
+					vertInfo.vec_Index.emplace_back(idxVertCurr);
+					vertInfo.vec_Index.emplace_back(idxVertCurrApex);
 
-					vertInfo.vec_Index.emplace_back(idxPreVertBtm);
-					vertInfo.vec_Index.emplace_back(idxCurrBtmVert);
+					vertInfo.vec_Index.emplace_back(idxVertCurrBtm);
+					vertInfo.vec_Index.emplace_back(idxVertPreBtm);
 					vertInfo.vec_Index.emplace_back(idxBtmCenterVert);
 
-					idxPreVert = idxCurrVert;
-					idxPreVertBtm = idxCurrBtmVert;
-					vecPreVert = vecVertNormal;
+					idxVertPre = idxVertCurr;
+					idxVertPreBtm = idxVertCurrBtm;
+					vecVertPre = vecVertNormal;
 				}
 			}
 
 			// last
-			if (firstVertIndex != preVertIndex) {
+			if (idxVertFst != idxVertPre) {
 				vertInfo.vec_Vertex.emplace_back(Vertex{
 					.pos = m_PtApex.to_GlmVec3(),
-					.normal = (vecPreVert + vecFirstVert).to_GlmVec3(),
+					.normal = (vecVertPre + vecVertFst).to_GlmVec3(),
 					.color = color,
 				});
 
-				vertInfo.vec_Index.emplace_back(firstVertIndex.value());
-				vertInfo.vec_Index.emplace_back(preVertIndex);
+				vertInfo.vec_Index.emplace_back(idxVertFst.value());
+				vertInfo.vec_Index.emplace_back(idxVertPre);
 				vertInfo.vec_Index.emplace_back(
 					static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1));
 
-				vertInfo.vec_Index.emplace_back(preVertIndex);
-				vertInfo.vec_Index.emplace_back(firstVertIndex.value());
-				vertInfo.vec_Index.emplace_back(btmCenterVertIndex);
+				vertInfo.vec_Index.emplace_back(idxVertFstBtm);
+				vertInfo.vec_Index.emplace_back(idxVertPreBtm);
+				vertInfo.vec_Index.emplace_back(idxBtmCenterVert);
 			}
 		}
 
 		if (hasTop) {
 			// 顶部
+			const auto & vecTopNormal = m_VecAxis.to_GlmVec3();
+
 			vertInfo.vec_Vertex.emplace_back(Vertex{
-				.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_BtmH}.to_GlmVec3(),
-				.normal = m_VecAxis.to_GlmVec3(),
+				.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_TopH}.to_GlmVec3(),
+				.normal = vecTopNormal,
 				.color = color,
 			});
 
-			const uint32_t & topCenterVertIndex =
+			const uint32_t & idxTopCenterVert =
 				static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-			std::vector<std::unique_ptr<GCurve>> vec_TopCurve = getCircle(m_BtmH);
+			std::vector<std::unique_ptr<GCurve>> vec_TopCurve = getCircle(m_TopH);
 
-			std::optional<uint32_t> firstVertIndex;
-			GVector vecFirstVert;
+			std::optional<uint32_t> idxVertFst;
+			uint32_t idxVertFstTop{0};
+			GVector vecVertFst;
 
-			uint32_t preVertIndex{0};
-			GVector vecPreVert;
+			uint32_t idxVertPre{0};
+			uint32_t idxVertPreTop{0};
+			GVector vecVertPre;
 
 			for (const auto & crv : vec_TopCurve) {
 				const auto & vec_PtVertTmp = crv->getVertex();
@@ -191,59 +196,74 @@ VertexInfo GCone::getVertex() const noexcept {
 					const auto & vecTan = crv->getTangentAt(ptCurr);
 					const auto & vecVertNormal = vecTan.cross(ptCurr - m_PtApex).normalize();
 
+					// 侧面圆周当前顶点
 					vertInfo.vec_Vertex.emplace_back(Vertex{
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecVertNormal.to_GlmVec3(),
 						.color = color,
 					});
-
-					const uint32_t & currVertIndex =
+					const uint32_t & idxVertCurr =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-					if (!firstVertIndex.has_value()) {
-						firstVertIndex = currVertIndex;
-						vecFirstVert = vecVertNormal;
+					// 顶面圆周当前顶点
+					vertInfo.vec_Vertex.emplace_back(Vertex{
+						.pos = ptCurr.to_GlmVec3(),
+						.normal = vecTopNormal,
+						.color = color,
+					});
+					const uint32_t & idxVertCurrTop =
+						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-						preVertIndex = currVertIndex;
-						vecPreVert = vecVertNormal;
+					if (!idxVertFst.has_value()) {
+						idxVertFst = idxVertCurr;
+						idxVertFstTop = idxVertCurrTop;
+						vecVertFst = vecVertNormal;
+
+						idxVertPre = idxVertCurr;
+						idxVertPreTop = idxVertCurrTop;
+						vecVertPre = vecVertNormal;
 						continue;
 					}
 
+					// 锥顶顶点
 					vertInfo.vec_Vertex.emplace_back(Vertex{
 						.pos = m_PtApex.to_GlmVec3(),
-						.normal = (vecPreVert + vecVertNormal).to_GlmVec3(),
+						.normal = (vecVertPre + vecVertNormal).normalize().to_GlmVec3(),
 						.color = color,
 					});
+					const uint32_t & idxVertCurrApex =
+						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-					vertInfo.vec_Index.emplace_back(currVertIndex);
-					vertInfo.vec_Index.emplace_back(preVertIndex);
-					vertInfo.vec_Index.emplace_back(currVertIndex + 1);
+					vertInfo.vec_Index.emplace_back(idxVertCurr);
+					vertInfo.vec_Index.emplace_back(idxVertPre);
+					vertInfo.vec_Index.emplace_back(idxVertCurrApex);
 
-					vertInfo.vec_Index.emplace_back(preVertIndex);
-					vertInfo.vec_Index.emplace_back(currVertIndex);
-					vertInfo.vec_Index.emplace_back(topCenterVertIndex);
+					vertInfo.vec_Index.emplace_back(idxVertPreTop);
+					vertInfo.vec_Index.emplace_back(idxVertCurrTop);
+					vertInfo.vec_Index.emplace_back(idxTopCenterVert);
 
-					preVertIndex = currVertIndex;
-					vecPreVert = vecVertNormal;
+					idxVertPre = idxVertCurr;
+					idxVertPreTop = idxVertCurrTop;
+					vecVertPre = vecVertNormal;
 				}
 			}
 
 			// last
-			if (firstVertIndex != preVertIndex) {
+			if (idxVertFst != idxVertPre) {
 				vertInfo.vec_Vertex.emplace_back(Vertex{
 					.pos = m_PtApex.to_GlmVec3(),
-					.normal = (vecPreVert + vecFirstVert).to_GlmVec3(),
+					.normal = (vecVertPre + vecVertFst).to_GlmVec3(),
 					.color = color,
 				});
 
-				vertInfo.vec_Index.emplace_back(firstVertIndex.value());
-				vertInfo.vec_Index.emplace_back(preVertIndex);
+				vertInfo.vec_Index.emplace_back(idxVertFst.value());
+				vertInfo.vec_Index.emplace_back(idxVertPre);
 				vertInfo.vec_Index.emplace_back(
 					static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1));
 
-				vertInfo.vec_Index.emplace_back(preVertIndex);
-				vertInfo.vec_Index.emplace_back(firstVertIndex.value());
-				vertInfo.vec_Index.emplace_back(topCenterVertIndex);
+				vertInfo.vec_Index.emplace_back(idxVertPreTop);
+				vertInfo.vec_Index.emplace_back(idxVertFstTop);
+				vertInfo.vec_Index.emplace_back(idxTopCenterVert);
 			}
 		}
 	} else {
@@ -254,13 +274,155 @@ VertexInfo GCone::getVertex() const noexcept {
 		vertInfo.vec_Vertex.reserve(36 * 2 + 2);
 		vertInfo.vec_Index.reserve(36 * 2 * 2 * 3);
 
+		std::vector<std::pair<GPoint, GVector>> vec_Pt2VecTop;
+		std::vector<std::pair<GPoint, GVector>> vec_Pt2VecBtm;
+
+		for (const auto & crv : getCircle(m_TopH)) {
+			const auto & vec_PtVertTmp = crv->getVertex();
+
+			for (size_t i = 0; i < vec_PtVertTmp.size() - 1; ++i) {
+				const auto & ptCurr = vec_PtVertTmp[i];
+				const auto & vecTan = crv->getTangentAt(ptCurr);
+				const auto & vecVertNormal = vecTan.cross(ptCurr - m_PtApex).normalize();
+
+				vec_Pt2VecTop.emplace_back(ptCurr, vecVertNormal);
+			}
+		}
+
+		for (const auto & crv : getCircle(m_BtmH)) {
+			const auto & vec_PtVertTmp = crv->getVertex();
+
+			for (size_t i = 0; i < vec_PtVertTmp.size() - 1; ++i) {
+				const auto & ptCurr = vec_PtVertTmp[i];
+				const auto & vecTan = crv->getTangentAt(ptCurr);
+				const auto & vecVertNormal = vecTan.cross(m_PtApex - ptCurr).normalize();
+
+				vec_Pt2VecBtm.emplace_back(ptCurr, vecVertNormal);
+			}
+		}
+
+		assert(vec_Pt2VecTop.size() == vec_Pt2VecBtm.size());
+
+		const auto & vecTopNormal = m_VecAxis.to_GlmVec3();
+		const auto & vecBtmNormal = (m_VecAxis * -1).to_GlmVec3();
+
 		vertInfo.vec_Vertex.emplace_back(Vertex{
-			.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_BtmH}.to_GlmVec3(),
-			.normal = (m_VecAxis * -1).to_GlmVec3(),
+			.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_TopH}.to_GlmVec3(),
+			.normal = vecTopNormal,
 			.color = color,
 		});
+		const uint32_t & idxTopCenterVert = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
-		std::vector<std::pair<GPoint, GVector>> vec_Pt2Vec;
+		vertInfo.vec_Vertex.emplace_back(Vertex{
+			.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_BtmH}.to_GlmVec3(),
+			.normal = vecBtmNormal,
+			.color = color,
+		});
+		const uint32_t & idxBtmCenterVert = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
+
+		std::optional<uint32_t> idxVertFstTopSide;
+		uint32_t idxVertFstBtmSide{0};
+		uint32_t idxVertFstTop{0};
+		uint32_t idxVertFstBtm{0};
+		GPoint ptVertFstTop;
+		GPoint ptVertFstBtm;
+
+		uint32_t idxVertPreTopSide;
+		uint32_t idxVertPreBtmSide{0};
+		uint32_t idxVertPreTop{0};
+		uint32_t idxVertPreBtm{0};
+		GPoint ptVertPreTop;
+		GPoint ptVertPreBtm;
+
+		for (size_t i = 0; i < vec_Pt2VecTop.size(); ++i) {
+			const auto & ptCurrTop = vec_Pt2VecTop[i].first;
+			const auto & ptCurrBtm = vec_Pt2VecBtm[i].first;
+			const auto & vecCurrTop = vec_Pt2VecTop[i].second;
+			const auto & vecCurrBtm = vec_Pt2VecBtm[i].second;
+
+			vertInfo.vec_Vertex.emplace_back(Vertex{
+				.pos = ptCurrTop.to_GlmVec3(),
+				.normal = vecCurrTop.cross(ptCurrTop - ptCurrBtm).to_GlmVec3(),
+				.color = color,
+			});
+			const uint32_t & idxVertCurrTopSide =
+				static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
+
+			vertInfo.vec_Vertex.emplace_back(Vertex{
+				.pos = ptCurrBtm.to_GlmVec3(),
+				.normal = vecCurrBtm.cross(ptCurrBtm - ptCurrTop).to_GlmVec3(),
+				.color = color,
+			});
+			const uint32_t & idxVertCurrBtmSide =
+				static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
+
+			vertInfo.vec_Vertex.emplace_back(Vertex{
+				.pos = ptCurrTop.to_GlmVec3(),
+				.normal = vecTopNormal,
+				.color = color,
+			});
+			const uint32_t & idxVertCurrTop = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
+
+			vertInfo.vec_Vertex.emplace_back(Vertex{
+				.pos = ptCurrBtm.to_GlmVec3(),
+				.normal = vecBtmNormal,
+				.color = color,
+			});
+			const uint32_t & idxVertCurrBtm = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
+
+			if (!idxVertFstTopSide.has_value()) {
+				idxVertFstTopSide = idxVertCurrTopSide;
+				idxVertFstBtmSide = idxVertCurrBtmSide;
+				idxVertFstTop = idxVertCurrTop;
+				idxVertFstBtm = idxVertCurrBtm;
+				ptVertFstTop = ptCurrTop;
+				ptVertFstBtm = ptCurrBtm;
+
+				idxVertPreTopSide = idxVertCurrTopSide;
+				idxVertPreBtmSide = idxVertCurrBtmSide;
+				idxVertPreTop = idxVertCurrTop;
+				idxVertPreBtm = idxVertCurrBtm;
+				ptVertPreTop = ptCurrTop;
+				ptVertPreBtm = ptCurrBtm;
+
+				continue;
+			}
+
+			vertInfo.vec_Index.emplace_back(idxVertCurrTopSide);
+			vertInfo.vec_Index.emplace_back(idxVertPreTopSide);
+			vertInfo.vec_Index.emplace_back(idxVertPreBtmSide);
+
+			vertInfo.vec_Index.emplace_back(idxVertCurrTopSide);
+			vertInfo.vec_Index.emplace_back(idxVertPreBtmSide);
+			vertInfo.vec_Index.emplace_back(idxVertCurrBtmSide);
+
+			vertInfo.vec_Index.emplace_back(idxVertPreTop);
+			vertInfo.vec_Index.emplace_back(idxVertCurrTop);
+			vertInfo.vec_Index.emplace_back(idxTopCenterVert);
+
+			vertInfo.vec_Index.emplace_back(idxVertCurrBtm);
+			vertInfo.vec_Index.emplace_back(idxVertPreBtm);
+			vertInfo.vec_Index.emplace_back(idxBtmCenterVert);
+		}
+
+		// last
+		if (idxVertFstTopSide != idxVertPreTopSide) {
+			vertInfo.vec_Index.emplace_back(idxVertFstTopSide.value());
+			vertInfo.vec_Index.emplace_back(idxVertPreTopSide);
+			vertInfo.vec_Index.emplace_back(idxVertPreBtmSide);
+
+			vertInfo.vec_Index.emplace_back(idxVertFstTopSide.value());
+			vertInfo.vec_Index.emplace_back(idxVertPreBtmSide);
+			vertInfo.vec_Index.emplace_back(idxVertFstBtmSide);
+
+			vertInfo.vec_Index.emplace_back(idxVertPreTop);
+			vertInfo.vec_Index.emplace_back(idxVertFstTop);
+			vertInfo.vec_Index.emplace_back(idxTopCenterVert);
+
+			vertInfo.vec_Index.emplace_back(idxVertFstBtm);
+			vertInfo.vec_Index.emplace_back(idxVertPreBtm);
+			vertInfo.vec_Index.emplace_back(idxBtmCenterVert);
+		}
 	}
 
 	return vertInfo;
