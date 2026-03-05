@@ -21,28 +21,34 @@ class Camera {
 				bool right = false;
 				bool up = false;
 				bool down = false;
-		} keys;
+		} bKeys;
+
+		struct {
+				bool left = false;
+				bool right = false;
+				bool mid = false;
+		} mKeys;
 
 	private:
 		// const
-		static inline const double rotationSpeed = 2.0;
+		static inline const double rotationSpeed = 0.1;
 		static inline const double movementSpeed = 40.0;
-		static inline const double zoomSpeed = 10.0;
+		static inline const double zoomSpeed = 0.1;
 
 		static inline const glm::dvec3 worldUp{0.0, 0.0, 1.0};
 
-		//
-		double dNear{0.0};
-		double dFar{0.0};
+		// 外部传入
+		double zNear{0.0};
+		double zFar{0.0};
+
+		double viewSize{0.0};
+		double windowWidth{0.0};
+		double windowHeight{0.0};
 
 		glm::dvec3 ptPos;
 		glm::dvec3 ptTarg;
 
-		double viewSize{0.0};
-		double windowW{0.0};
-		double windowH{0.0};
-
-		//
+		// 内部数据
 		bool updated{false};
 
 		glm::dvec3 camRight;
@@ -52,19 +58,19 @@ class Camera {
 		double yaw = 0;	  // 水平
 		double pitch = 0; // 俯仰
 
-		double aspectRatio{0.0}; // 宽:高
-
 	private:
-		bool moving() const { return keys.left || keys.right || keys.up || keys.down; }
+		bool keyMoving() const { return bKeys.left || bKeys.right || bKeys.up || bKeys.down; }
 
 	public:
 		Camera() {}
-		Camera(const glm::dvec3 & pos, const glm::dvec3 & targ, const double n, const double f,
-			   const double size, const double wW, const double wH)
-			: ptPos(pos), ptTarg(targ), dNear(n), dFar(f), viewSize(size), windowW(wW), windowH(wH),
-			  aspectRatio(wW / wH) {
+		Camera(const glm::dvec3 & posPt, const glm::dvec3 & targPt, const double zN,
+			   const double zF, const double size, const double windowW, const double windowH)
+			: ptPos(posPt), ptTarg(targPt), zNear(zN), zFar(zF), viewSize(size),
+			  windowWidth(windowW), windowHeight(windowH) {
+
 			camForward = glm::normalize(ptTarg - ptPos);
 			camRight = glm::normalize(glm::cross(camForward, worldUp));
+			camUp = glm::normalize(glm::cross(camRight, camForward));
 
 			glm::dvec3 dir = ptPos - ptTarg;
 			double r = glm::length(dir);
@@ -73,9 +79,10 @@ class Camera {
 		}
 
 		glm::mat4 getPerspectiveMtx() {
-			double halfW = viewSize * aspectRatio;
+			double halfW = viewSize * (windowWidth / windowHeight);
 			double halfH = viewSize;
-			glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, dNear, dFar);
+			glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, zNear, zFar);
+			// y轴需要翻转
 			proj[1][1] *= -1.0f;
 			return proj;
 		}
@@ -85,16 +92,16 @@ class Camera {
 		bool update(double deltaTime) {
 			bool stateChanged = false;
 
-			if (moving()) {
+			if (keyMoving()) {
 				glm::dvec3 moveVec(0.0);
 
-				if (keys.left)
+				if (bKeys.left)
 					moveVec -= camRight;
-				if (keys.right)
+				if (bKeys.right)
 					moveVec += camRight;
-				if (keys.up)
+				if (bKeys.up)
 					moveVec += camUp;
-				if (keys.down)
+				if (bKeys.down)
 					moveVec -= camUp;
 
 				moveVec.z = 0.0;
@@ -104,10 +111,6 @@ class Camera {
 				ptTarg += shift;
 				updated = true;
 			}
-
-			camForward = glm::normalize(ptTarg - ptPos);
-			camRight = glm::normalize(glm::cross(camForward, worldUp));
-			camUp = glm::cross(camRight, camForward);
 
 			stateChanged = updated;
 			updated = false;
@@ -122,6 +125,11 @@ class Camera {
 			pitch = glm::clamp(pitch, -85.0, 85.0);
 
 			updatePositionFromAngles();
+
+			camForward = glm::normalize(ptTarg - ptPos);
+			camRight = glm::normalize(glm::cross(camForward, worldUp));
+			camUp = glm::cross(camRight, camForward);
+
 			updated = true;
 		}
 
@@ -136,14 +144,10 @@ class Camera {
 		}
 
 		void pan(double dx, double dy) {
-			glm::dvec3 forward = glm::normalize(ptTarg - ptPos);
-			glm::dvec3 right = glm::normalize(glm::cross(forward, worldUp));
-			glm::dvec3 up = glm::cross(right, forward);
+			double worldDX = (dx / windowWidth) * viewSize * (windowWidth / windowHeight) * 2.0;
+			double worldDY = (dy / windowHeight) * viewSize * 2.0;
 
-			double worldDX = (dx / windowW) * viewSize * aspectRatio * 2.0;
-			double worldDY = (dy / windowH) * viewSize * 2.0;
-
-			glm::dvec3 shift = right * worldDX + up * worldDY;
+			glm::dvec3 shift = camRight * worldDX + camUp * worldDY;
 
 			shift.z = 0.0;
 
@@ -153,11 +157,10 @@ class Camera {
 		}
 
 		void zoom(double delta) {
-			const double factor = 0.1;
 			if (delta > 0)
-				viewSize *= (1.0 - factor);
+				viewSize *= (1.0 - zoomSpeed);
 			else
-				viewSize *= (1.0 + factor);
+				viewSize *= (1.0 + zoomSpeed);
 
 			viewSize = glm::clamp(viewSize, 1.0, 100000.0);
 			updated = true;

@@ -45,7 +45,8 @@ std::vector<GPoint> GArc::getVertex() const noexcept {
 		GPoint ptTmp{m_PtCenter};
 		GVector vecTmp{m_VecBegin};
 
-		ptTmp += vecTmp.transformBy(GMatrix().setToRotate(m_PtCenter, m_VecNormal, i * fragAngle));
+		ptTmp += vecTmp.transformBy(GMatrix().setToRotate(m_PtCenter, m_VecNormal, i * fragAngle)) *
+				 m_Radius;
 
 		vec_Pt.emplace_back(ptTmp);
 	}

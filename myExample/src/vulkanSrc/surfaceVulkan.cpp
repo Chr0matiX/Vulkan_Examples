@@ -78,16 +78,16 @@ LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam,
 		case WM_KEYDOWN: {
 			switch (wParam) {
 			case KEY_W:
-				m_pCamera->keys.up = true;
+				m_pCamera->bKeys.up = true;
 				break;
 			case KEY_S:
-				m_pCamera->keys.down = true;
+				m_pCamera->bKeys.down = true;
 				break;
 			case KEY_A:
-				m_pCamera->keys.left = true;
+				m_pCamera->bKeys.left = true;
 				break;
 			case KEY_D:
-				m_pCamera->keys.right = true;
+				m_pCamera->bKeys.right = true;
 				break;
 			}
 			break;
@@ -95,16 +95,16 @@ LRESULT SurfaceVulkan::handleWindowMessages(HWND hWnd, UINT uMsg, WPARAM wParam,
 		case WM_KEYUP: {
 			switch (wParam) {
 			case KEY_W:
-				m_pCamera->keys.up = false;
+				m_pCamera->bKeys.up = false;
 				break;
 			case KEY_S:
-				m_pCamera->keys.down = false;
+				m_pCamera->bKeys.down = false;
 				break;
 			case KEY_A:
-				m_pCamera->keys.left = false;
+				m_pCamera->bKeys.left = false;
 				break;
 			case KEY_D:
-				m_pCamera->keys.right = false;
+				m_pCamera->bKeys.right = false;
 				break;
 			}
 			break;
@@ -225,8 +225,8 @@ bool SurfaceVulkan::isReady() {
 }
 
 void SurfaceVulkan::handleMouseMove(int32_t x, int32_t y) {
-	double dx = m_MouseState.position.x - x;
-	double dy = m_MouseState.position.y - y;
+	double dx = x - m_MouseState.position.x;
+	double dy = y - m_MouseState.position.y;
 
 	if (m_MouseState.buttons.left) {
 		m_pCamera->rotate(dx, dy);

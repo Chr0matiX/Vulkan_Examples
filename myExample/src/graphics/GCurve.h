@@ -118,10 +118,10 @@ class GArc final : public GCurve {
 		GPoint getClosestPt(const GPoint & pt, const bool extend = false) const noexcept override;
 
 		GVector getTangentAt(const double ratio) const noexcept override {
-			return (getPtAt(ratio) - m_PtCenter).cross(m_VecNormal).normalize();
+			return (m_PtCenter - getPtAt(ratio)).cross(m_VecNormal).normalize();
 		}
 		GVector getTangentAt(const GPoint & pt) const noexcept override {
-			return (pt - m_PtCenter).cross(m_VecNormal).normalize();
+			return (m_PtCenter - pt).cross(m_VecNormal).normalize();
 		}
 
 		std::vector<GPoint> getVertex() const noexcept override;

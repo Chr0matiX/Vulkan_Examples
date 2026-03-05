@@ -29,7 +29,7 @@ GVector GVector::getNormalize() const noexcept {
 	return vecTmp;
 }
 
-double GVector::angleTo(const GVector & other, const GVector vecNormal) const noexcept {
+double GVector::angleTo(const GVector & other, const GVector & vecNormal) const noexcept {
 	glm::dvec3 normal = glm::normalize(vecNormal.vec);
 
 	glm::dvec3 projThis = vec - glm::dot(vec, normal) * normal;
@@ -52,7 +52,7 @@ double GVector::angleTo(const GVector & other, const GVector vecNormal) const no
 	if (glm::dot(normal, crossProd) < 0.0)
 		angle = -angle;
 
-	return angle;
+	return glm::degrees(angle);
 }
 
 GVector & GVector::transformBy(const GMatrix & mtx) noexcept {

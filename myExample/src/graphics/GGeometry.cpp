@@ -8,7 +8,7 @@ GCone::GCone(const GPoint & ptBtmCenter, const double radius, const double heigh
 	: m_TopH(ptBtmCenter.position.z + height), m_BtmH(ptBtmCenter.position.z),
 	  m_HalfAngle(halfAngle) {
 	m_PtApex = {ptBtmCenter};
-	m_PtApex.position.z += radius / std::tan(halfAngle);
+	m_PtApex.position.z += (radius / std::tan(glm::radians(halfAngle)));
 }
 
 std::vector<std::unique_ptr<GCurve>> GCone::getCircle(const double height) const noexcept {
@@ -24,7 +24,8 @@ std::vector<std::unique_ptr<GCurve>> GCone::getCircle(const double height) const
 
 	const GPoint ptCenter{m_PtApex.position.x, m_PtApex.position.y, height};
 
-	const double & raduis = std::tan(m_HalfAngle) * std::abs(m_PtApex.position.z - height);
+	const double & raduis =
+		std::tan(glm::radians(m_HalfAngle)) * std::abs(m_PtApex.position.z - height);
 
 	std::vector<std::unique_ptr<GCurve>> vec_Rtn;
 	vec_Rtn.reserve(2);
@@ -42,7 +43,7 @@ VertexInfo GCone::getVertex() const noexcept {
 
 	VertexInfo vertInfo;
 
-	if ((compleDouble(m_PtApex.position.z, m_TopH) <= 0) ||
+	if ((compleDouble(m_PtApex.position.z, m_TopH) <= 0) &&
 		(compleDouble(m_PtApex.position.z, m_BtmH) >= 0)) {
 		// 双锥
 		bool hasBtm = compleDouble(m_PtApex.position.z, m_BtmH) != 0;
@@ -283,7 +284,7 @@ VertexInfo GCone::getVertex() const noexcept {
 			for (size_t i = 0; i < vec_PtVertTmp.size() - 1; ++i) {
 				const auto & ptCurr = vec_PtVertTmp[i];
 				const auto & vecTan = crv->getTangentAt(ptCurr);
-				const auto & vecVertNormal = vecTan.cross(ptCurr - m_PtApex).normalize();
+				const auto & vecVertNormal = vecTan.cross(m_PtApex - ptCurr).normalize();
 
 				vec_Pt2VecTop.emplace_back(ptCurr, vecVertNormal);
 			}
@@ -324,15 +325,11 @@ VertexInfo GCone::getVertex() const noexcept {
 		uint32_t idxVertFstBtmSide{0};
 		uint32_t idxVertFstTop{0};
 		uint32_t idxVertFstBtm{0};
-		GPoint ptVertFstTop;
-		GPoint ptVertFstBtm;
 
 		uint32_t idxVertPreTopSide;
 		uint32_t idxVertPreBtmSide{0};
 		uint32_t idxVertPreTop{0};
 		uint32_t idxVertPreBtm{0};
-		GPoint ptVertPreTop;
-		GPoint ptVertPreBtm;
 
 		for (size_t i = 0; i < vec_Pt2VecTop.size(); ++i) {
 			const auto & ptCurrTop = vec_Pt2VecTop[i].first;
@@ -342,7 +339,7 @@ VertexInfo GCone::getVertex() const noexcept {
 
 			vertInfo.vec_Vertex.emplace_back(Vertex{
 				.pos = ptCurrTop.to_GlmVec3(),
-				.normal = vecCurrTop.cross(ptCurrTop - ptCurrBtm).to_GlmVec3(),
+				.normal = vecCurrTop.to_GlmVec3(),
 				.color = color,
 			});
 			const uint32_t & idxVertCurrTopSide =
@@ -350,7 +347,7 @@ VertexInfo GCone::getVertex() const noexcept {
 
 			vertInfo.vec_Vertex.emplace_back(Vertex{
 				.pos = ptCurrBtm.to_GlmVec3(),
-				.normal = vecCurrBtm.cross(ptCurrBtm - ptCurrTop).to_GlmVec3(),
+				.normal = vecCurrBtm.to_GlmVec3(),
 				.color = color,
 			});
 			const uint32_t & idxVertCurrBtmSide =
@@ -375,15 +372,11 @@ VertexInfo GCone::getVertex() const noexcept {
 				idxVertFstBtmSide = idxVertCurrBtmSide;
 				idxVertFstTop = idxVertCurrTop;
 				idxVertFstBtm = idxVertCurrBtm;
-				ptVertFstTop = ptCurrTop;
-				ptVertFstBtm = ptCurrBtm;
 
 				idxVertPreTopSide = idxVertCurrTopSide;
 				idxVertPreBtmSide = idxVertCurrBtmSide;
 				idxVertPreTop = idxVertCurrTop;
 				idxVertPreBtm = idxVertCurrBtm;
-				ptVertPreTop = ptCurrTop;
-				ptVertPreBtm = ptCurrBtm;
 
 				continue;
 			}
@@ -403,6 +396,11 @@ VertexInfo GCone::getVertex() const noexcept {
 			vertInfo.vec_Index.emplace_back(idxVertCurrBtm);
 			vertInfo.vec_Index.emplace_back(idxVertPreBtm);
 			vertInfo.vec_Index.emplace_back(idxBtmCenterVert);
+
+			idxVertPreTopSide = idxVertCurrTopSide;
+			idxVertPreBtmSide = idxVertCurrBtmSide;
+			idxVertPreTop = idxVertCurrTop;
+			idxVertPreBtm = idxVertCurrBtm;
 		}
 
 		// last

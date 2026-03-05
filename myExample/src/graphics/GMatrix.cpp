@@ -29,8 +29,8 @@ GMatrix & GMatrix::setToRotate(const GPoint & ptCenter, const GVector & vecNorma
 	setToIdentity();
 
 	if (compleDouble(angle, 0) > 0) {
-		const double c = std::cos(angle);
-		const double s = std::sin(angle);
+		const double c = std::cos(glm::radians(angle));
+		const double s = std::sin(glm::radians(angle));
 		const double t = 1.0 - c;
 
 		m_Mat[0][0] = t * vecNormal.vec.x * vecNormal.vec.x + c;

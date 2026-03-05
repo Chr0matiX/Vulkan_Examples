@@ -2,7 +2,7 @@
 #include "vulkanSrc/vkContext.h"
 
 int main() {
-	GCone cone({0.0, 0.0, 0.0}, 100.0, 100.0, 45);
+	GCone cone({0.0, 0.0, 0.0}, 1000.0, 600.0, 30);
 
 	const auto & vertexInfo = cone.getVertex();
 	VkContext::getInstance().setVertex(vertexInfo.vec_Vertex);

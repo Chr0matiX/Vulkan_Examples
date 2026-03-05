@@ -47,7 +47,7 @@ class GVector {
 
 		GVector getNormalize() const noexcept;
 
-		double angleTo(const GVector & other, const GVector vecNormal) const noexcept;
+		double angleTo(const GVector & other, const GVector & vecNormal) const noexcept;
 		double angleTo(const GVector & other) const noexcept {
 			return angleTo(other, cross(other));
 		}
