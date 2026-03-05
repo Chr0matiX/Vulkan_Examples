@@ -113,6 +113,58 @@ inline int8_t compleDouble(const double v1, const double v2, const double tol = 
 	return v1 < v2 ? -1 : 1;
 }
 
+inline glm::vec3 adjustColorToLuminance(glm::vec3 color, float targetLuma = 0.8f) {
+	const glm::vec3 weights(0.2126f, 0.7152f, 0.0722f);
+
+	float currentLuma = glm::dot(color, weights);
+	if (currentLuma < 0.0001f) {
+		return glm::vec3(targetLuma);
+	}
+
+	float scale = targetLuma / currentLuma;
+	glm::vec3 adjustedColor = color * scale;
+
+	float maxComponent = std::max(adjustedColor.r, std::max(adjustedColor.g, adjustedColor.b));
+
+	if (maxComponent > 1.0f) {
+		glm::vec3 normalizedColor = adjustedColor / maxComponent;
+		float lumaAtMax = glm::dot(normalizedColor, weights);
+
+		float t = (targetLuma - lumaAtMax) / (1.0f - lumaAtMax);
+		t = glm::clamp(t, 0.0f, 1.0f);
+
+		return glm::mix(normalizedColor, glm::vec3(1.0f), t);
+	}
+
+	return adjustedColor;
+}
+
+inline glm::vec3 adjustColorToLuminance_new(glm::vec3 color, float targetLuma = 0.6f) {
+	const glm::vec3 weights(0.2126f, 0.7152f, 0.0722f);
+
+	float currentLuma = glm::dot(color, weights);
+
+	if (currentLuma < 0.0001f) {
+		return glm::vec3(targetLuma);
+	}
+
+	float scale = targetLuma / currentLuma;
+	glm::vec3 adjustedColor = color * scale;
+
+	float maxC = std::max(adjustedColor.r, std::max(adjustedColor.g, adjustedColor.b));
+
+	if (maxC > 1.0f) {
+		glm::vec3 normalizedColor = adjustedColor / maxC;
+		float lumaAtMax = glm::dot(normalizedColor, weights);
+		float t = (targetLuma - lumaAtMax) / (1.0f - lumaAtMax);
+		t = glm::clamp(t, 0.0f, 1.0f);
+
+		return glm::mix(normalizedColor, glm::vec3(1.0f), t);
+	}
+
+	return adjustedColor;
+}
+
 inline glm::vec3 getDebugColor(const glm::dvec3 & position) {
 	double gridX = std::floor(position.x);
 	double gridY = std::floor(position.y);
@@ -123,7 +175,49 @@ inline glm::vec3 getDebugColor(const glm::dvec3 & position) {
 		return glm::fract(std::sin(dot_product) * 43758.5453);
 	};
 
-	return glm::vec3(static_cast<float>(hash(gridX, gridY, gridZ)),
-					 static_cast<float>(hash(gridX + 1.1, gridY + 2.2, gridZ + 3.3)),
-					 static_cast<float>(hash(gridX + 4.4, gridY + 5.5, gridZ + 6.6)));
+	glm::vec3 rgb(static_cast<float>(hash(gridX, gridY, gridZ)),
+				  static_cast<float>(hash(gridX + 1.1, gridY + 2.2, gridZ + 3.3)),
+				  static_cast<float>(hash(gridX + 4.4, gridY + 5.5, gridZ + 6.6)));
+
+	return adjustColorToLuminance_new(rgb);
+}
+
+// keep 为 false，则 vec_VertexInfo 将不可用
+inline VertexInfo mergVertexInfo(std::vector<VertexInfo> & vec_VertexInfo, const bool keep = true) {
+	VertexInfo vertInfoRtn;
+	size_t vertexCount{0}, indexCount{0};
+
+	for (const auto & vertInfo : vec_VertexInfo) {
+		vertexCount += vertInfo.vec_Vertex.size();
+		indexCount += vertInfo.vec_Index.size();
+	}
+
+	vertInfoRtn.vec_Vertex.reserve(vertexCount);
+	vertInfoRtn.vec_Index.reserve(indexCount);
+
+	for (auto & vertInfo : vec_VertexInfo) {
+		const size_t vertexOffset = vertInfoRtn.vec_Vertex.size();
+		const size_t indexStartIdx = vertInfoRtn.vec_Index.size();
+
+		if (keep) {
+			vertInfoRtn.vec_Vertex.insert(vertInfoRtn.vec_Vertex.end(), vertInfo.vec_Vertex.begin(),
+										  vertInfo.vec_Vertex.end());
+			vertInfoRtn.vec_Index.insert(vertInfoRtn.vec_Index.end(), vertInfo.vec_Index.begin(),
+										 vertInfo.vec_Index.end());
+		} else {
+			vertInfoRtn.vec_Vertex.insert(vertInfoRtn.vec_Vertex.end(),
+										  std::make_move_iterator(vertInfo.vec_Vertex.begin()),
+										  std::make_move_iterator(vertInfo.vec_Vertex.end()));
+			vertInfoRtn.vec_Index.insert(vertInfoRtn.vec_Index.end(),
+										 std::make_move_iterator(vertInfo.vec_Index.begin()),
+										 std::make_move_iterator(vertInfo.vec_Index.end()));
+
+			vertInfo.vec_Vertex.clear();
+			vertInfo.vec_Index.clear();
+		}
+
+		for (size_t i = indexStartIdx; i < vertInfoRtn.vec_Index.size(); ++i)
+			vertInfoRtn.vec_Index[i] += vertexOffset;
+	}
+	return vertInfoRtn;
 }

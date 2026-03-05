@@ -31,9 +31,9 @@ class Camera {
 
 	private:
 		// const
-		static inline const double rotationSpeed = 0.1;
-		static inline const double movementSpeed = 40.0;
-		static inline const double zoomSpeed = 0.1;
+		static inline const double rotationSpeed = 0.2;
+		static inline const double movementSpeed = 100.0;
+		static inline const double zoomSpeed = 0.2;
 
 		static inline const glm::dvec3 worldUp{0.0, 0.0, 1.0};
 
@@ -151,8 +151,9 @@ class Camera {
 
 			shift.z = 0.0;
 
-			ptPos += shift;
-			ptTarg += shift;
+			// 模拟拖动轴网，反向移动
+			ptPos -= shift;
+			ptTarg -= shift;
 			updated = true;
 		}
 
