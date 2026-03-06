@@ -120,7 +120,7 @@ class Camera {
 		// mouse
 		void rotate(double deltaX, double deltaY) {
 			yaw += deltaX * rotationSpeed;
-			pitch -= deltaY * rotationSpeed;
+			pitch += deltaY * rotationSpeed;
 
 			pitch = glm::clamp(pitch, -85.0, 85.0);
 

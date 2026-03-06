@@ -179,7 +179,8 @@ inline glm::vec3 getDebugColor(const glm::dvec3 & position) {
 				  static_cast<float>(hash(gridX + 1.1, gridY + 2.2, gridZ + 3.3)),
 				  static_cast<float>(hash(gridX + 4.4, gridY + 5.5, gridZ + 6.6)));
 
-	return adjustColorToLuminance_new(rgb);
+	return adjustColorToLuminance(rgb);
+	//return adjustColorToLuminance_new(rgb);
 }
 
 // keep 为 false，则 vec_VertexInfo 将不可用
