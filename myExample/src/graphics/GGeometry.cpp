@@ -5,8 +5,16 @@
 
 GCone::GCone(const GPoint & ptBtmCenter, const double radius, const double height,
 			 const double halfAngle)
-	: m_TopH(ptBtmCenter.position.z + height), m_BtmH(ptBtmCenter.position.z),
-	  m_HalfAngle(halfAngle) {
+	: m_HalfAngle(halfAngle) {
+
+	if (halfAngle < 0) {
+		m_TopH = ptBtmCenter.position.z;
+		m_BtmH = ptBtmCenter.position.z + height;
+	} else {
+		m_TopH = ptBtmCenter.position.z + height;
+		m_BtmH = ptBtmCenter.position.z;
+	}
+
 	m_PtApex = {ptBtmCenter};
 	m_PtApex.position.z += (radius / std::tan(glm::radians(halfAngle)));
 }

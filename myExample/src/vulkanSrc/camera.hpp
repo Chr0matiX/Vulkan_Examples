@@ -32,7 +32,7 @@ class Camera {
 	private:
 		// const
 		static inline const double rotationSpeed = 0.2;
-		static inline const double movementSpeed = 100.0;
+		static inline const double movementSpeed = 1000.0;
 		static inline const double zoomSpeed = 0.2;
 
 		static inline const glm::dvec3 worldUp{0.0, 0.0, 1.0};
@@ -84,6 +84,10 @@ class Camera {
 			glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, zNear, zFar);
 			// y轴需要翻转
 			proj[1][1] *= -1.0f;
+
+			// Debug
+			proj[3][2] = -zNear / (zFar - zNear);
+
 			return proj;
 		}
 
@@ -147,13 +151,12 @@ class Camera {
 			double worldDX = (dx / windowWidth) * viewSize * (windowWidth / windowHeight) * 2.0;
 			double worldDY = (dy / windowHeight) * viewSize * 2.0;
 
-			glm::dvec3 shift = camRight * worldDX + camUp * worldDY;
+			glm::dvec3 shift = -camRight * worldDX + camUp * worldDY;
 
 			shift.z = 0.0;
 
-			// 模拟拖动轴网，反向移动
-			ptPos -= shift;
-			ptTarg -= shift;
+			ptPos += shift;
+			ptTarg += shift;
 			updated = true;
 		}
 
@@ -163,7 +166,7 @@ class Camera {
 			else
 				viewSize *= (1.0 + zoomSpeed);
 
-			viewSize = glm::clamp(viewSize, 1.0, 100000.0);
+			viewSize = glm::clamp(viewSize, 1.0, 1000000.0);
 			updated = true;
 		}
 };

@@ -75,11 +75,13 @@ bool VkContext::init() {
 								 10000.0f); */
 
 		m_Camera = Camera{
-			{-3000.0, -3000.0, 1500},
-			{0.0, 0.0, 1500},
-			-100000.0,
-			100000.0,
-			1500,
+			{-6000.0, -6000.0, 6000},
+			{0.0, 0.0, 3000},
+			//-300000000,
+			//+300000000,
+			-1e6,
+			1e6,
+			3000,
 			static_cast<double>(m_WindowWidth),
 			static_cast<double>(m_WindowHeight),
 		};
@@ -312,6 +314,9 @@ void VkContext::startRenderLoop() {
 	MSG msg;
 	bool quitMessageReceived = false;
 
+	double timeAdd = 0.0;
+	uint32_t frameCount = 0;
+
 	while (!quitMessageReceived) {
 		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -326,12 +331,20 @@ void VkContext::startRenderLoop() {
 			auto tStart = std::chrono::high_resolution_clock::now();
 
 			m_RenderVulkanInstance->renderNext();
+			++frameCount;
 
 			auto tEnd = std::chrono::high_resolution_clock::now();
 			auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
 
 			const auto & frameTimer = (float)tDiff / 1000.0f;
 			m_Camera.update(frameTimer);
+
+			timeAdd += tDiff;
+			if (timeAdd > 1000) {
+				timeAdd = 0;
+				std::cout << "FPS:" << frameCount << std::endl;
+				frameCount = 0;
+			}
 		}
 	}
 }
