@@ -23,8 +23,8 @@ public:
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
 // 定义数据结构一定要注意 GPU 侧对齐
-struct Vertex {
-		glm::vec3 pos;
+struct /* alignas(16) */ Vertex {
+		/* alignas(16) */ glm::vec3 pos;
 		glm::vec3 normal;
 		glm::vec3 color;
 };

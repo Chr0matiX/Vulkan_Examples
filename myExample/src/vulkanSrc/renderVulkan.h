@@ -71,6 +71,7 @@ class RenderVulkan {
 
 		struct UniformRes {
 				BufferRes m_BufferRes;
+				// DescriptorSet 可以理解为一个内存数据的解释器
 				VkDescriptorSet m_DescriptorSet{VK_NULL_HANDLE};
 				uint8_t * m_PMapped{nullptr};
 		};

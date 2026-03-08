@@ -593,3 +593,104 @@ vkAcquireNextImageKHR 表示：当交换链中的某张图片不再被显示器�
 显示引擎在接收到 Present 请求后，会检查这个信号量。只有当它变为 Signaled 时，显示引擎才会把对应的 Image 抓取过去进行屏幕扫描。同时，显示引擎在消费掉这个信号量后，会将其自动重置回 Unsignaled 状态。
 
 > RenderSemaphore 是为了避免，Command 还未执行完，Image 就被拿去使用了。
+
+# 还需提升
+
+## Vulkan 方向
+
+### 1. Vulkan Memory Allocator
+
+1. Buffer 池化，内存偏移
+
+解答：
+
+通过 
+```vkBindBufferMemory(device, buffer, memory, offset); ```
+中的`offset`进行偏移，需要考虑到内存对齐
+
+#### 进阶
+
+1. 理解 Uniform Buffer 与 Storage Buffer 的区别及其在 5 万个对象场景下的性能差异
+
+解答：
+
+Uniform Buffer：**高速，容量小，`Shader`只读**，使用常量缓存，对齐要求大
+
+Storage Buffer：**普通速度，容量大，`Shader`可写**，使用 L1/L2 缓存，对齐要求小
+
+### 2. 彻底搞懂同步
+
+1. Pipeline Barriers， 搞清楚什么是 srcStageMask 和 dstStageMask
+
+解答：
+
+Pipeline Barriers 多用在多管线线性流程上，用来分隔 前后两个 pipeline 操作。比如实时计算位置，然后渲染。
+
+srcStageMask 保证这个阶段及这个阶段之前的操作已经完成了且数据可用
+
+dstStageMask 表示这个阶段一定要等待前面的某个阶段完成且数据可用
+
+在管线屏障中 src 和 dst 成对存在。
+
+而在 VkSubmitInfo 中，也有一个 dstStageMask ，它表示 在dstStageMask指示的这个阶段执行之前，需要等待设置的那一个信号量可用，才能执行这个阶段
+
+#### 进阶
+
+1. 一个多 Pass 渲染
+
+### 3. 性能优化
+
+1. GPU Instancing（实例化渲染）
+
+#### 进阶
+
+1. 学习使用 Indirect Drawing（间接绘制）。尝试让 CPU 只发一条指令，由 GPU 自己决定画多少个圆锥
+
+### 4. 渲染技术的广度
+
+1. 光照： 至少实现一个 Blinn-Phong 甚至简单的 PBR (Physically Based Rendering) 着色器。
+   1. Blinn-Phong : 计算半角向量，物体法线与半角向量越接近，则高光越亮，渲染几何场景中规定，各种向量（法线，光照，视线）都是从当前坐标为起点的
+   2. PBR 物理光照渲染
+
+2. 阴影： 实现 Shadow Mapping，这是考察对深度缓冲区理解的最佳手段。
+	1. 实际上就是点在某个区域下，某一个方向上的距离，对比距离可获得是否在阴影中
+
+3. 工具： 熟练使用 RenderDoc。你不仅要看到结果，还要能通过 RenderDoc 观察每一帧里 GPU 压力在哪。
+	1. 完成shader调试
+	2. 查看顶点数据等等
+
+## 数学方向
+
+### 矩阵推导
+
+1. 常见矩阵的推导（视角、投影）
+
+2. 法线变换问题
+
+3. 四元数
+
+### 光学物理与着色数学
+
+1. 向量运算的物理意义
+	1. 向量运算的物理意义： * 点积 (Dot Product)： 不只是求角度，它是 Lambert 光照模型的核心（$\cos \theta$）。
+	2. 叉积 (Cross Product)： 用于计算切线空间（TBN 矩阵），这是实现法线贴图的基础。
+
+2. BRDF 模型： 了解微平面理论。你需要学习 Cook-Torrance BRDF，理解其中的 D（分布函数）、F（菲涅尔项）、G（几何遮蔽项）背后的数学公式
+
+3. 颜色空间： 理解 Gamma 校正的数学本质（幂函数变换），知道为什么不能在纹理采样后直接进行线性计算
+
+### 计算几何与空间加速
+
+1. 包围盒
+
+2. 相交测试，视锥剔除
+
+3. 空间分割： 了解 BVH (层次包围盒) 或 八叉树 (Octree) 的基本原理。这是处理成千上万个物体时不崩溃的关键。
+
+### 离散数学与信号处理基础
+
+1. 走样与反走样
+
+2. 插值算法： 除了线性插值（Lerp），还要理解重心坐标插值（Barycentric Coordinates），这是 GPU 在光栅化阶段决定像素颜色的核心数学手段。
+
+### 

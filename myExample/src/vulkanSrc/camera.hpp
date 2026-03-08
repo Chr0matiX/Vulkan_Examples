@@ -8,8 +8,8 @@
 
 #pragma once
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+//#define GLM_FORCE_RADIANS
+//#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -85,8 +85,8 @@ class Camera {
 			// y轴需要翻转
 			proj[1][1] *= -1.0f;
 
-			// Debug
-			proj[3][2] = -zNear / (zFar - zNear);
+			// 宏定义污染
+			//proj[3][2] = -zNear / (zFar - zNear);
 
 			return proj;
 		}

@@ -9,7 +9,7 @@ GCone::GCone(const GPoint & ptBtmCenter, const double radius, const double heigh
 
 	if (halfAngle < 0) {
 		m_TopH = ptBtmCenter.position.z;
-		m_BtmH = ptBtmCenter.position.z + height;
+		m_BtmH = ptBtmCenter.position.z - height;
 	} else {
 		m_TopH = ptBtmCenter.position.z + height;
 		m_BtmH = ptBtmCenter.position.z;
@@ -163,8 +163,8 @@ VertexInfo GCone::getVertex() const noexcept {
 					.color = color,
 				});
 
-				vertInfo.vec_Index.emplace_back(idxVertFst.value());
 				vertInfo.vec_Index.emplace_back(idxVertPre);
+				vertInfo.vec_Index.emplace_back(idxVertFst.value());
 				vertInfo.vec_Index.emplace_back(
 					static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1));
 

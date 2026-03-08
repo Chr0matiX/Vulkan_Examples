@@ -414,7 +414,8 @@ bool RenderVulkan::createPipeline() {
 		.depthClampEnable = VK_FALSE,
 		.rasterizerDiscardEnable = VK_FALSE,
 		.polygonMode = VK_POLYGON_MODE_FILL,
-		.cullMode = VK_CULL_MODE_NONE,
+		//.cullMode = VK_CULL_MODE_NONE,
+		.cullMode = VK_CULL_MODE_BACK_BIT,
 		.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 		.depthBiasEnable = VK_FALSE,
 		.lineWidth = 1.0f,
@@ -478,6 +479,7 @@ bool RenderVulkan::createPipeline() {
 	};
 
 	// 对应 GLSL 中的 location
+	// 描述内存布局
 	std::vector<VkVertexInputAttributeDescription> vertexInputAttributs{
 		{
 			.location = 0,
@@ -644,6 +646,8 @@ bool RenderVulkan::renderNext() {
 	vkWaitForFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex], VK_TRUE, UINT64_MAX);
 	CHECK_VK_RESULT(vkResetFences(m_LogicalDevice, 1, &vec_Fence[m_CurrentFrameIndex]));
 
+	// 此处并不能代表 imageIndex 所在的 VkImage 可以直接使用了，submit 命令中还需要等待
+	// vec_PresentSmph[m_CurrentFrameIndex] 这个信号量
 	uint32_t imageIndex{0};
 	VkResult result =
 		vkAcquireNextImageKHR(m_LogicalDevice, m_Swapchain, UINT64_MAX,
@@ -723,6 +727,7 @@ bool RenderVulkan::renderNext() {
 
 	vkCmdBindPipeline(currentCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
+	// 此处可以使用 Storage Buffer， 同时通过 offsets 访问不同块
 	VkDeviceSize offsets[1]{0};
 	vkCmdBindVertexBuffers(currentCmdBuffer, 0, 1, &m_VertexBufferRes.m_Buffer, offsets);
 
@@ -734,13 +739,17 @@ bool RenderVulkan::renderNext() {
 
 	CHECK_VK_RESULT(vkEndCommandBuffer(currentCmdBuffer));
 
+	// 表示 颜色输出阶段
 	VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 	VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.waitSemaphoreCount = 1,
+		// 需要等待此信号量，才可以继续执行，此信号量表示这一个 VkImage 是否可用
 		.pWaitSemaphores = &vec_PresentSmph[m_CurrentFrameIndex],
-		.pWaitDstStageMask = &waitStageMask,
+		// 表示要在 COLOR_ATTACHMENT_OUTPUT 这个阶段执行之前，等待上述信号量，
+		// 也就是等待这个VkImage是否可用
+		.pWaitDstStageMask = &waitStageMask, // 可以设置多个阶段的等待
 		.commandBufferCount = 1,
 		.pCommandBuffers = &currentCmdBuffer,
 		.signalSemaphoreCount = 1,

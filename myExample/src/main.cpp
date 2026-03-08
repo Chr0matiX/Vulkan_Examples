@@ -5,12 +5,14 @@
 
 int main() {
 	std::vector<VertexInfo> vec_VertInfo{
-		/* GCone({0.0, 0.0, 0.0}, 1000.0, 600.0, 30).getVertex(),
+		GCone({3000.0, 3000.0, 1000.0 / std::tan(glm::radians(45.0))}, 1000.0, 500.0, -45)
+			.getVertex(),
+		GCone({0.0, 0.0, 0.0}, 1000.0, 600.0, 30).getVertex(),
 		GCone({3000.0, 0.0, 0.0}, 1000.0, 1000.0, 45).getVertex(),
-		GCone({0.0, 3000.0, 0.0}, 1000.0, 3000.0, 30).getVertex(), */
+		GCone({0.0, 3000.0, 0.0}, 1000.0, 3000.0, 30).getVertex(),
 	};
 
-	// 随机数据生成
+	/* // 随机数据生成
 	// 固定种子
 	std::default_random_engine rSeed(12345);
 	const double stepSize = 3000.0;
@@ -29,7 +31,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle));
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle)));
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -51,7 +53,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) / 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -73,7 +75,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) * 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) * 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -116,7 +118,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) / 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -138,7 +140,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) / 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -160,7 +162,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) / 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -182,7 +184,7 @@ int main() {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = radius / std::tan(glm::radians(halfAngle)) / 2;
+				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
 				vec_VertInfo.emplace_back(
 					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
@@ -190,7 +192,7 @@ int main() {
 						.getVertex());
 			}
 		}
-	}
+	} */
 
 	VertexInfo vertexInfo = mergVertexInfo(vec_VertInfo, false);
 
