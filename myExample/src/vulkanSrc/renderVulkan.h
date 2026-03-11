@@ -76,6 +76,13 @@ class RenderVulkan {
 				uint8_t * m_PMapped{nullptr};
 		};
 
+		struct IndirectRes {
+				BufferRes m_BufferRes;
+				uint8_t * m_PMapped{nullptr};
+		};
+
+		std::vector<IndirectRes> vec_IndirectRes;
+
 		std::vector<UniformRes> vec_UniformRes;
 
 		VkDescriptorSetLayout m_DescriptorSetLayout{VK_NULL_HANDLE};
@@ -110,6 +117,8 @@ class RenderVulkan {
 		bool createVertexBufferRes();
 
 		bool createUniformBufferRes();
+
+		bool createIndirectBufferRes();
 
 		bool createDescriptorSetLayout();
 

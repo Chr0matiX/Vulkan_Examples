@@ -1,22 +1,25 @@
 #include "graphics/GGeometry.h"
+#include "vulkanSrc/renderObject.h"
 #include "vulkanSrc/vkContext.h"
 
 #include <random>
 
 int main() {
-	std::vector<VertexInfo> vec_VertInfo{
+	/* std::vector<VertexInfo> vec_VertInfo{
 		GCone({3000.0, 3000.0, 1000.0 / std::tan(glm::radians(45.0))}, 1000.0, 500.0, -45)
 			.getVertex(),
 		GCone({0.0, 0.0, 0.0}, 1000.0, 600.0, 30).getVertex(),
 		GCone({3000.0, 0.0, 0.0}, 1000.0, 1000.0, 45).getVertex(),
 		GCone({0.0, 3000.0, 0.0}, 1000.0, 3000.0, 30).getVertex(),
-	};
+	}; */
+	// vec_VertInfo.reserve(10 * 10 * 4);
 
-	/* // 随机数据生成
+	RenderObjectManager::getInstance().addRenderObject(new RenderObject(new GCone()));
+
+	// 随机数据生成
 	// 固定种子
 	std::default_random_engine rSeed(12345);
 	const double stepSize = 3000.0;
-	vec_VertInfo.reserve(10 * 10 * 4);
 
 	double zOffset = 0;
 
@@ -33,10 +36,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle)));
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -55,10 +57,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -77,10 +78,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) * 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -97,10 +97,9 @@ int main() {
 			for (uint32_t col = 0; col < 100; ++col) {
 				const auto & signs = rSigns(rSeed);
 
-				vec_VertInfo.emplace_back(GCone({col * stepSize, row * stepSize, 0 + zOffset},
-												rRadius(rSeed), rHeight(rSeed),
-												rHalfAngle(rSeed) * (signs ? 1 : -1))
-											  .getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, 0 + zOffset}, rRadius(rSeed),
+							  rHeight(rSeed), rHalfAngle(rSeed) * (signs ? 1 : -1))));
 			}
 		}
 	}
@@ -120,10 +119,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -142,10 +140,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -164,10 +161,9 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
 	}
@@ -186,25 +182,26 @@ int main() {
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
-				vec_VertInfo.emplace_back(
-					GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset}, radius,
-						  height, halfAngle)
-						.getVertex());
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
+					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+							  radius, height, halfAngle)));
 			}
 		}
-	} */
+	}
 
-	VertexInfo vertexInfo = mergVertexInfo(vec_VertInfo, false);
+	// VertexInfo vertexInfo = mergVertexInfo(vec_VertInfo, false);
 
-	VkContext::getInstance().setVertex(vertexInfo.vec_Vertex);
-	VkContext::getInstance().setIndex(vertexInfo.vec_Index);
+	const auto & vertexInfoMerg = RenderObjectManager::getInstance().getVertexInfo();
+
+	VkContext::getInstance().setVertex(vertexInfoMerg.vec_Vertex);
+	VkContext::getInstance().setIndex(vertexInfoMerg.vec_Index);
 
 	VkContext::getInstance().init();
 
 	if (!VkContext::getInstance().valid())
 		return 1;
 
-	vec_VertInfo.clear();
+	// vec_VertInfo.clear();
 
 	VkContext::getInstance().startRenderLoop();
 

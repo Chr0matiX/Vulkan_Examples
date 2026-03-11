@@ -1,4 +1,5 @@
 #include "renderVulkan.h"
+#include "renderObject.h"
 
 #include <cstdint>
 #include <fstream>
@@ -40,6 +41,9 @@ bool RenderVulkan::prepare() {
 
 	// UniformBuffer
 	if (!createUniformBufferRes())
+		return false;
+
+	if (!createIndirectBufferRes())
 		return false;
 
 	// Descriptor 资源
@@ -303,10 +307,58 @@ bool RenderVulkan::createUniformBufferRes() {
 										   uniformRes.m_BufferRes.m_Memory, 0));
 
 		CHECK_VK_RESULT(vkMapMemory(m_LogicalDevice, uniformRes.m_BufferRes.m_Memory, 0,
-									sizeof(ShaderData), 0, (void **)&uniformRes.m_PMapped));
+									memReqs.size, 0, (void **)&uniformRes.m_PMapped));
 	}
 
 	return !vec_UniformRes.empty();
+}
+
+bool RenderVulkan::createIndirectBufferRes() {
+	const VkDeviceSize & bufferSize = sizeof(VkDrawIndexedIndirectCommand) *
+									  RenderObjectManager::getInstance().getRenderObjCount();
+
+	VkBufferCreateInfo bufferInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = bufferSize,
+		.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	};
+
+	VkMemoryAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.allocationSize = 0,
+		.memoryTypeIndex = 0,
+	};
+
+	VkMemoryRequirements memReqs;
+
+	vec_IndirectRes.resize(m_MaxConcurrentFrames);
+
+	for (uint32_t i = 0; i < m_MaxConcurrentFrames; i++) {
+		auto & indirctRes = vec_IndirectRes[i];
+
+		CHECK_VK_RESULT(vkCreateBuffer(m_LogicalDevice, &bufferInfo, nullptr,
+									   &indirctRes.m_BufferRes.m_Buffer));
+
+		vkGetBufferMemoryRequirements(m_LogicalDevice, indirctRes.m_BufferRes.m_Buffer, &memReqs);
+
+		allocInfo.allocationSize = memReqs.size;
+		allocInfo.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
+													   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+														   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		CHECK_VK_RESULT(vkAllocateMemory(m_LogicalDevice, &allocInfo, nullptr,
+										 &indirctRes.m_BufferRes.m_Memory));
+
+		CHECK_VK_RESULT(vkBindBufferMemory(m_LogicalDevice, indirctRes.m_BufferRes.m_Buffer,
+										   indirctRes.m_BufferRes.m_Memory, 0));
+
+		CHECK_VK_RESULT(vkMapMemory(m_LogicalDevice, indirctRes.m_BufferRes.m_Memory, 0,
+									memReqs.size, 0, (void **)&indirctRes.m_PMapped));
+	}
+
+	return !vec_IndirectRes.empty();
 }
 
 bool RenderVulkan::createDescriptorSetLayout() {
@@ -670,6 +722,31 @@ bool RenderVulkan::renderNext() {
 
 	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
 
+	// 批量绘制
+	std::vector<VkDrawIndexedIndirectCommand> vec_IndirectInfo;
+	uint32_t drawCount{0};
+	{
+		const auto & vec_pRenderObj = RenderObjectManager::getInstance().getVecRenderObj(
+			[this](const GPoint & pt) -> bool { return m_pCamera->isPtIn(pt); });
+		vec_IndirectInfo.reserve(vec_pRenderObj.size());
+		drawCount = vec_pRenderObj.size();
+
+		for (const auto & pRenderObj : vec_pRenderObj) {
+			vec_IndirectInfo.emplace_back(VkDrawIndexedIndirectCommand{
+				.indexCount = pRenderObj->getIndexCount(),
+				.instanceCount = 1,
+				.firstIndex = pRenderObj->getIndexOffset(),
+				.vertexOffset = static_cast<int32_t>(pRenderObj->getVertexOffset()),
+			});
+		}
+	}
+
+	auto & currentIndirectBuffer = vec_IndirectRes[m_CurrentFrameIndex];
+
+	memcpy(currentIndirectBuffer.m_PMapped, vec_IndirectInfo.data(),
+		   sizeof(VkDrawIndexedIndirectCommand) * drawCount);
+
+	//
 	const auto & currentCmdBuffer = getFrameCmdBuffer(m_CurrentFrameIndex);
 
 	vkResetCommandBuffer(currentCmdBuffer, 0);
@@ -733,7 +810,11 @@ bool RenderVulkan::renderNext() {
 
 	vkCmdBindIndexBuffer(currentCmdBuffer, m_IndexBufferRes.m_Buffer, 0, VK_INDEX_TYPE_UINT32);
 
-	vkCmdDrawIndexed(currentCmdBuffer, m_IndexBufferRes.m_Count, 1, 0, 0, 0);
+	// vkCmdDrawIndexed(currentCmdBuffer, m_IndexBufferRes.m_Count, 1, 0, 0, 0);
+
+	vkCmdDrawIndexedIndirect(currentCmdBuffer,
+							 vec_IndirectRes[m_CurrentFrameIndex].m_BufferRes.m_Buffer, 0,
+							 drawCount, sizeof(VkDrawIndexedIndirectCommand));
 
 	vkCmdEndRenderPass(currentCmdBuffer);
 

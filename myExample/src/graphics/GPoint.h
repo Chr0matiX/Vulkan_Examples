@@ -14,6 +14,7 @@ class GPoint {
 
 		GPoint() : position{0, 0, 0} {}
 		GPoint(const double x, const double y, const double z) : position{x, y, z} {}
+		GPoint(const glm::dvec3 & pos) : position(pos) {}
 
 		void set(const double x, const double y, const double z) noexcept { position = {x, y, z}; }
 

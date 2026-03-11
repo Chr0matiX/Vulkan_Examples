@@ -20,12 +20,12 @@ GCone::GCone(const GPoint & ptBtmCenter, const double radius, const double heigh
 }
 
 std::vector<std::unique_ptr<GCurve>> GCone::getCircle(const double height) const noexcept {
-	if (compleDouble(height, m_PtApex.position.z) == 0)
+	if (compareDouble(height, m_PtApex.position.z) == 0)
 		return {};
 
 	GVector vecBegin{GVector::xAxis};
 	// 暂时不用
-	/* if (compleDouble(height, m_PtApex.position.z) > 0)
+	/* if (compareDouble(height, m_PtApex.position.z) > 0)
 		vecBegin *= -1; */
 
 	const GVector vecEnd{vecBegin * -1};
@@ -51,11 +51,11 @@ VertexInfo GCone::getVertex() const noexcept {
 
 	VertexInfo vertInfo;
 
-	if ((compleDouble(m_PtApex.position.z, m_TopH) <= 0) &&
-		(compleDouble(m_PtApex.position.z, m_BtmH) >= 0)) {
+	if ((compareDouble(m_PtApex.position.z, m_TopH) <= 0) &&
+		(compareDouble(m_PtApex.position.z, m_BtmH) >= 0)) {
 		// 双锥
-		bool hasBtm = compleDouble(m_PtApex.position.z, m_BtmH) != 0;
-		bool hasTop = compleDouble(m_PtApex.position.z, m_TopH) != 0;
+		bool hasBtm = compareDouble(m_PtApex.position.z, m_BtmH) != 0;
+		bool hasTop = compareDouble(m_PtApex.position.z, m_TopH) != 0;
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
@@ -277,7 +277,7 @@ VertexInfo GCone::getVertex() const noexcept {
 		}
 	} else {
 		// 圆台
-		if (compleDouble(m_TopH, m_BtmH) == 0)
+		if (compareDouble(m_TopH, m_BtmH) == 0)
 			return {};
 
 		vertInfo.vec_Vertex.reserve(36 * 2 + 2);
@@ -432,4 +432,8 @@ VertexInfo GCone::getVertex() const noexcept {
 	}
 
 	return vertInfo;
+}
+
+GPoint GCone::getFeaturePt() const noexcept {
+	return GPoint{m_PtApex.to_GlmVec3().x, m_PtApex.to_GlmVec3().y, (m_TopH + m_BtmH) / 2};
 }

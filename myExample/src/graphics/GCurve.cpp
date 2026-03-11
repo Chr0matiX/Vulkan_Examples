@@ -6,9 +6,9 @@ GPoint GLineSeg::getClosestPt(const GPoint & pt, const bool extend) const noexce
 	double ratio = (pt - m_PtBegin).dot(m_PtEnd - m_PtBegin) / getLength();
 
 	if (!extend) {
-		if (compleDouble(ratio, 0) <= 0)
+		if (compareDouble(ratio, 0) <= 0)
 			return m_PtBegin;
-		else if (compleDouble(ratio, 1) >= 1)
+		else if (compareDouble(ratio, 1) >= 1)
 			return m_PtEnd;
 	}
 
@@ -23,9 +23,9 @@ GPoint GArc::getClosestPt(const GPoint & pt, const bool extend) const noexcept {
 		double angleThis = m_VecBegin.angleTo(m_VecEnd);
 		double turning = 180 + angleThis / 2;
 
-		if ((compleDouble(anglePt, angleThis) >= 0) && (compleDouble(anglePt, turning) <= 0))
+		if ((compareDouble(anglePt, angleThis) >= 0) && (compareDouble(anglePt, turning) <= 0))
 			vecPt = m_VecEnd;
-		else if (compleDouble(anglePt, turning) > 0)
+		else if (compareDouble(anglePt, turning) > 0)
 			vecPt = m_VecBegin;
 	}
 
@@ -37,7 +37,7 @@ GPoint GArc::getClosestPt(const GPoint & pt, const bool extend) const noexcept {
 std::vector<GPoint> GArc::getVertex() const noexcept {
 	const uint8_t maxFragCount = 18;
 	const double fragAngle = m_VecBegin.angleTo(m_VecEnd, m_VecNormal) / maxFragCount;
-	if (compleDouble(fragAngle, 0, 0.1) <= 0)
+	if (compareDouble(fragAngle, 0, 0.1) <= 0)
 		return {};
 
 	std::vector<GPoint> vec_Pt;

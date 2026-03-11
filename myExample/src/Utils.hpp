@@ -106,7 +106,7 @@ struct DepthStencilRes {
 };
 
 // return: -1 0 1
-inline int8_t compleDouble(const double v1, const double v2, const double tol = 0.0001) {
+inline int8_t compareDouble(const double v1, const double v2, const double tol = 0.0001) {
 	if ((abs)(v1 - v2) < tol)
 		return 0;
 

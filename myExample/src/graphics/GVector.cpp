@@ -17,7 +17,7 @@ double GVector::getLength() const noexcept {
 GVector & GVector::normalize() noexcept {
 	const double & length = getLength();
 
-	if (compleDouble(length, 0) != 0)
+	if (compareDouble(length, 0) != 0)
 		vec = glm::normalize(vec);
 
 	return *this;
@@ -37,7 +37,7 @@ double GVector::angleTo(const GVector & other, const GVector & vecNormal) const 
 
 	double lenThis = glm::length(projThis);
 	double lenOther = glm::length(projOther);
-	if ((compleDouble(lenThis, 0) <= 0) || (compleDouble(lenOther, 0) <= 0))
+	if ((compareDouble(lenThis, 0) <= 0) || (compareDouble(lenOther, 0) <= 0))
 		return 0.0;
 
 	projThis /= lenThis;

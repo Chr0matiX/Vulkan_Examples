@@ -12,6 +12,7 @@ class GGeometry {
 	public:
 		virtual ~GGeometry() {};
 		virtual VertexInfo getVertex() const noexcept = 0;
+		virtual GPoint getFeaturePt() const noexcept = 0;
 };
 
 class GCone : public GGeometry {
@@ -37,4 +38,6 @@ class GCone : public GGeometry {
 		std::vector<std::unique_ptr<GCurve>> getCircle(const double height) const noexcept;
 
 		VertexInfo getVertex() const noexcept override;
+
+		GPoint getFeaturePt() const noexcept override;
 };

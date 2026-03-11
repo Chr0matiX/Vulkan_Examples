@@ -15,7 +15,7 @@ GMatrix & GMatrix::setToIdentity() noexcept {
 GMatrix & GMatrix::setToMove(const GVector & vec) noexcept {
 	setToIdentity();
 
-	if (compleDouble(vec.getLength(), 0) > 0) {
+	if (compareDouble(vec.getLength(), 0) > 0) {
 		m_Mat[3][0] = vec.vec.x;
 		m_Mat[3][1] = vec.vec.y;
 		m_Mat[3][2] = vec.vec.z;
@@ -28,7 +28,7 @@ GMatrix & GMatrix::setToRotate(const GPoint & ptCenter, const GVector & vecNorma
 							   const double angle) noexcept {
 	setToIdentity();
 
-	if (compleDouble(angle, 0) > 0) {
+	if (compareDouble(angle, 0) > 0) {
 		const double c = std::cos(glm::radians(angle));
 		const double s = std::sin(glm::radians(angle));
 		const double t = 1.0 - c;
@@ -76,7 +76,7 @@ GMatrix GMatrix::getInverse() const noexcept {
 	GMatrix res;
 	double det = glm::determinant(m_Mat);
 
-	if (compleDouble(glm::determinant(m_Mat), 0) <= 0) {
+	if (compareDouble(glm::determinant(m_Mat), 0) <= 0) {
 		res.setToIdentity();
 	} else {
 		res.m_Mat = glm::inverse(m_Mat);
