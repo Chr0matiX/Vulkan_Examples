@@ -10,8 +10,10 @@ RenderObject::~RenderObject() {
 }
 
 VertexInfo & RenderObject::getVertexInfo() noexcept {
-	if (!bInit)
+	if (!bInit) {
 		m_VertInfo = std::move(m_pGeo->getVertex());
+		bInit = true;
+	}
 
 	return m_VertInfo;
 }
@@ -54,12 +56,27 @@ bool RenderObjectManager::update() {
 	if (vec_pRenderObj.empty())
 		return true;
 
-	std::vector<VertexInfo> vec_VertInfo;
+	size_t totalVertices = 0;
+	size_t totalIndices = 0;
+	for (const auto & pObj : vec_pRenderObj) {
+		totalVertices += pObj->getVertexInfo().vec_Vertex.size();
+		totalIndices += pObj->getVertexInfo().vec_Index.size();
+	}
+
+	m_VertInfoMerg.vec_Vertex.clear();
+	m_VertInfoMerg.vec_Index.clear();
+	m_VertInfoMerg.vec_Vertex.reserve(totalVertices);
+	m_VertInfoMerg.vec_Index.reserve(totalIndices);
+
 	uint32_t vertCount{0};
 	uint32_t indexCount{0};
 	for (const auto & pRenderObj : vec_pRenderObj) {
 		const auto & vertInfo = pRenderObj->getVertexInfo();
-		vec_VertInfo.emplace_back(vertInfo);
+
+		m_VertInfoMerg.vec_Vertex.insert(m_VertInfoMerg.vec_Vertex.end(),
+										 vertInfo.vec_Vertex.begin(), vertInfo.vec_Vertex.end());
+		m_VertInfoMerg.vec_Index.insert(m_VertInfoMerg.vec_Index.end(), vertInfo.vec_Index.begin(),
+										vertInfo.vec_Index.end());
 
 		pRenderObj->setVertexOffset(vertCount);
 		pRenderObj->setIndexOffset(indexCount);
@@ -69,7 +86,7 @@ bool RenderObjectManager::update() {
 		indexCount += vertInfo.vec_Index.size();
 	}
 
-	m_VertInfoMerg = mergVertexInfo(vec_VertInfo, false);
+	m_Update = true;
 
 	return true;
 }

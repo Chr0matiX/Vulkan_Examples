@@ -65,7 +65,12 @@ class RenderObjectManager {
 		const std::vector<const RenderObject *>
 		getVecRenderObj(const std::function<bool(const GPoint &)> func);
 
-		VertexInfo & getVertexInfo() { return m_VertInfoMerg; }
+		VertexInfo & getVertexInfo() {
+			if (!m_Update)
+				update();
+
+			return m_VertInfoMerg;
+		}
 
 		uint32_t getRenderObjCount() { return static_cast<uint32_t>(vec_pRenderObj.size()); }
 };

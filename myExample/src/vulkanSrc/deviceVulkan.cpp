@@ -49,6 +49,8 @@ bool DeviceVulkan::init() {
 		vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_Features);
 		vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &m_MemoryProperty);
 
+		m_ExpectDeviceFeatures = m_Features;
+
 		std::vector<VkDeviceQueueCreateInfo> vec_QueueCI;
 		std::set<uint32_t> set_QueueIndexes;
 		{

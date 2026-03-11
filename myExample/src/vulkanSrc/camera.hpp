@@ -63,6 +63,8 @@ class Camera {
 		double yaw = 0;	  // 水平
 		double pitch = 0; // 俯仰
 
+		double aspect{0};
+
 	private:
 		bool keyMoving() const { return bKeys.left || bKeys.right || bKeys.up || bKeys.down; }
 
@@ -71,7 +73,7 @@ class Camera {
 		Camera(const glm::dvec3 & posPt, const glm::dvec3 & targPt, const double zN,
 			   const double zF, const double size, const double windowW, const double windowH)
 			: ptPos(posPt), ptTarg(targPt), zNear(zN), zFar(zF), viewSize(size),
-			  windowWidth(windowW), windowHeight(windowH) {
+			  windowWidth(windowW), windowHeight(windowH), aspect(windowWidth / windowHeight) {
 
 			camForward = glm::normalize(ptTarg - ptPos);
 			camRight = glm::normalize(glm::cross(camForward, worldUp));
@@ -84,7 +86,7 @@ class Camera {
 		}
 
 		glm::mat4 getPerspectiveMtx() {
-			double halfW = viewSize * (windowWidth / windowHeight);
+			double halfW = viewSize * aspect;
 			double halfH = viewSize;
 			glm::mat4 proj = glm::ortho(-halfW, halfW, -halfH, halfH, zNear, zFar);
 			// y轴需要翻转
@@ -153,10 +155,22 @@ class Camera {
 		}
 
 		void pan(double dx, double dy) {
-			double worldDX = (dx / windowWidth) * viewSize * (windowWidth / windowHeight) * 2.0;
+			double worldDX = (dx / windowWidth) * viewSize * (aspect) * 2.0;
 			double worldDY = (dy / windowHeight) * viewSize * 2.0;
 
-			glm::dvec3 shift = -camRight * worldDX + camUp * worldDY;
+			glm::dvec3 camUpTmp = camUp;
+			glm::dvec3 camForwardTmp = camForward;
+			camUpTmp.z = 0;
+			camForwardTmp.z = 0;
+
+			glm::dvec3 vecUp = camUpTmp;
+
+			if (compareDouble(glm::length(camUpTmp), glm::length(camForwardTmp), 0.00001) < 0)
+				vecUp = camForwardTmp;
+
+			vecUp = glm::normalize(vecUp);
+
+			glm::dvec3 shift = -camRight * worldDX + vecUp * worldDY;
 
 			shift.z = 0.0;
 
@@ -176,6 +190,8 @@ class Camera {
 		}
 
 		bool isPtIn(const GPoint & ptSrc) {
+			// return true;
+
 			GVector vecForward{camForward};
 			vecForward.normalize();
 
@@ -193,9 +209,9 @@ class Camera {
 
 			const double debugRatio = 0.7;
 
-			if ((compareDouble(std::abs(vecPt.dot(GVector(camRight))), windowWidth * debugRatio) >
-				 0) ||
-				(compareDouble(std::abs(vecPt.dot(GVector(camUp))), windowHeight * debugRatio) > 0))
+			if ((compareDouble(std::abs(vecPt.dot(GVector(camRight))),
+							   viewSize * aspect * debugRatio) > 0) ||
+				(compareDouble(std::abs(vecPt.dot(GVector(camUp))), viewSize * debugRatio) > 0))
 				return false;
 
 			const auto & ptDis = ptClosest.distanceTo(ptStart);

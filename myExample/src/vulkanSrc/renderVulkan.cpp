@@ -356,6 +356,29 @@ bool RenderVulkan::createIndirectBufferRes() {
 
 		CHECK_VK_RESULT(vkMapMemory(m_LogicalDevice, indirctRes.m_BufferRes.m_Memory, 0,
 									memReqs.size, 0, (void **)&indirctRes.m_PMapped));
+
+		// test, 初始化时写死
+		/* std::vector<VkDrawIndexedIndirectCommand> vec_IndirectInfo;
+		uint32_t drawCount{0};
+		{
+			const auto & vec_pRenderObj = RenderObjectManager::getInstance().getVecRenderObj(
+				[this](const GPoint & pt) -> bool { return m_pCamera->isPtIn(pt); });
+
+			vec_IndirectInfo.reserve(vec_pRenderObj.size());
+			drawCount = vec_pRenderObj.size();
+
+			for (const auto & pRenderObj : vec_pRenderObj) {
+				vec_IndirectInfo.emplace_back(VkDrawIndexedIndirectCommand{
+					.indexCount = pRenderObj->getIndexCount(),
+					.instanceCount = 1,
+					.firstIndex = pRenderObj->getIndexOffset(),
+					.vertexOffset = static_cast<int32_t>(pRenderObj->getVertexOffset()),
+				});
+			}
+		}
+
+		memcpy(indirctRes.m_PMapped, vec_IndirectInfo.data(),
+			   sizeof(VkDrawIndexedIndirectCommand) * drawCount); */
 	}
 
 	return !vec_IndirectRes.empty();
@@ -815,6 +838,11 @@ bool RenderVulkan::renderNext() {
 	vkCmdDrawIndexedIndirect(currentCmdBuffer,
 							 vec_IndirectRes[m_CurrentFrameIndex].m_BufferRes.m_Buffer, 0,
 							 drawCount, sizeof(VkDrawIndexedIndirectCommand));
+
+	// 一次性绘制测试
+	/* vkCmdDrawIndexedIndirect(currentCmdBuffer,
+							 vec_IndirectRes[m_CurrentFrameIndex].m_BufferRes.m_Buffer, 0,
+							 80000, sizeof(VkDrawIndexedIndirectCommand)); */
 
 	vkCmdEndRenderPass(currentCmdBuffer);
 

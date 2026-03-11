@@ -196,7 +196,8 @@ int main() {
 	VkContext::getInstance().setVertex(vertexInfoMerg.vec_Vertex);
 	VkContext::getInstance().setIndex(vertexInfoMerg.vec_Index);
 
-	VkContext::getInstance().init();
+	if (!VkContext::getInstance().init())
+		return 1;
 
 	if (!VkContext::getInstance().valid())
 		return 1;

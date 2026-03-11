@@ -25,7 +25,9 @@ class DeviceVulkan {
 
 		std::vector<const char *> vec_ExpectDeviceExtension;
 
-		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures;
+		VkPhysicalDeviceFeatures m_ExpectDeviceFeatures{
+			.multiDrawIndirect = true,
+		};
 
 		float m_DefaultQueuePriority{0.f};
 

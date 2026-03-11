@@ -217,8 +217,9 @@ inline VertexInfo mergVertexInfo(std::vector<VertexInfo> & vec_VertexInfo, const
 			vertInfo.vec_Index.clear();
 		}
 
-		for (size_t i = indexStartIdx; i < vertInfoRtn.vec_Index.size(); ++i)
-			vertInfoRtn.vec_Index[i] += vertexOffset;
+		// 间接绘制这里不需要处理便宜
+		//for (size_t i = indexStartIdx; i < vertInfoRtn.vec_Index.size(); ++i)
+		//	vertInfoRtn.vec_Index[i] += vertexOffset;
 	}
 	return vertInfoRtn;
 }
