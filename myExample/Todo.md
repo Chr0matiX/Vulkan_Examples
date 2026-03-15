@@ -1,9 +1,10 @@
 # 研究
 
-- 研究`VulkanExampleBase::setupDepthStencil`中申请显存的细节
-- 研究`VulkanExampleBase::createSynchronizationPrimitives`中不同同步机制的细节
-- 研究`VulkanExampleBase::setupRenderPass`中缓存定义的细节
-- 研究`renderLoop`中 CPU 最大缓冲与 Image 最大缓冲不一致时，同步问题
+- ~~研究`VulkanExampleBase::setupDepthStencil`中申请显存的细节~~
+- ~~研究`VulkanExampleBase::createSynchronizationPrimitives`中不同同步机制的细节~~
+- ~~研究`VulkanExampleBase::setupRenderPass`中缓存定义的细节~~
+- ~~研究`renderLoop`中 CPU 最大缓冲与 Image 最大缓冲不一致时，同步问题~~
+- 八叉树，空间 B 树的技术细节
 
 # 实现
 
@@ -74,7 +75,7 @@
 	围绕着 VkSwapchainKHR ，在重新创建 VkSwapchainKHR 之前，我需要读取哪些可能已经被修改的数据？（比如 VkSurfaceCapabilitiesKHR等等？）
 	在重新创建 VkSwapchainKHR 之后，我需要继续重建什么资源？（比如 VkImage等等？）
 
-3. 我现在还缺少~~VkImage (Depth/Stencil): 深度缓冲~~， ~~VkRenderPass，~~ VkFramebuffer， VkPipeline， ~~VkCommandBuffer~~
+3. 我现在还缺少~~VkImage (Depth/Stencil): 深度缓冲~~， ~~VkRenderPass，~~ ~~VkFramebuffer，~~ ~~VkPipeline，~~ ~~VkCommandBuffer~~
 4. 重新总结
 
 	我们现在需要以各种 CreateInfo 为单位，对资源初始化的方式进行总结。

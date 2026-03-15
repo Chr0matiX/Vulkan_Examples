@@ -98,10 +98,10 @@ inline void checkVkResult(const VkResult & vkResult, const char * funcName, cons
 	exit(1);
 }
 
-struct DepthStencilRes {
-		VkImage m_Image;
-		VkImageView m_ImageView;
-		VkDeviceMemory m_Memory;
+struct VkImageRes {
+		VkImage m_Image{VK_NULL_HANDLE};
+		VkImageView m_ImageView{VK_NULL_HANDLE};
+		VkDeviceMemory m_Memory{VK_NULL_HANDLE};
 		VkFormat m_Format;
 };
 
@@ -180,7 +180,7 @@ inline glm::vec3 getDebugColor(const glm::dvec3 & position) {
 				  static_cast<float>(hash(gridX + 4.4, gridY + 5.5, gridZ + 6.6)));
 
 	return adjustColorToLuminance(rgb);
-	//return adjustColorToLuminance_new(rgb);
+	// return adjustColorToLuminance_new(rgb);
 }
 
 // keep 为 false，则 vec_VertexInfo 将不可用
@@ -218,7 +218,7 @@ inline VertexInfo mergVertexInfo(std::vector<VertexInfo> & vec_VertexInfo, const
 		}
 
 		// 间接绘制这里不需要处理便宜
-		//for (size_t i = indexStartIdx; i < vertInfoRtn.vec_Index.size(); ++i)
+		// for (size_t i = indexStartIdx; i < vertInfoRtn.vec_Index.size(); ++i)
 		//	vertInfoRtn.vec_Index[i] += vertexOffset;
 	}
 	return vertInfoRtn;

@@ -48,7 +48,7 @@ class RenderVulkan {
 
 		int m_WindowHeight{0};
 
-		DepthStencilRes m_DepthStencilRes;
+		VkImageRes m_DepthStencilRes;
 
 		Camera * m_pCamera{nullptr};
 
@@ -78,7 +78,7 @@ class RenderVulkan {
 
 		struct IndirectRes {
 				BufferRes m_BufferRes;
-				uint8_t * m_PMapped{nullptr};
+				void * m_PMapped{nullptr};
 		};
 
 		std::vector<IndirectRes> vec_IndirectRes;
@@ -103,6 +103,10 @@ class RenderVulkan {
 
 		std::vector<VkFramebuffer> vec_FrameBuffer;
 
+		VkSampler m_NormalMapSample{VK_NULL_HANDLE};
+
+		VkImageRes m_NormalMapImageRes;
+
 	private:
 		bool init();
 
@@ -120,6 +124,8 @@ class RenderVulkan {
 
 		bool createIndirectBufferRes();
 
+		bool createNormalMapSample();
+
 		bool createDescriptorSetLayout();
 
 		bool createDescriptorPool();
@@ -131,6 +137,11 @@ class RenderVulkan {
 		bool setupFrameBuffer();
 
 		bool renderNext();
+
+		void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image,
+								   VkImageLayout oldLayout, VkImageLayout newLayout,
+								   uint32_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+								   uint32_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED);
 
 		VkCommandPool getCmdPool(const uint32_t qIndex);
 

@@ -693,4 +693,13 @@ dstStageMask 表示这个阶段一定要等待前面的某个阶段完成且数�
 
 2. 插值算法： 除了线性插值（Lerp），还要理解重心坐标插值（Barycentric Coordinates），这是 GPU 在光栅化阶段决定像素颜色的核心数学手段。
 
-### 
+# Shader
+
+## 常用 Shader
+
+1. VK_SHADER_STAGE_VERTEX_BIT：`Vertex`顶点着色器
+2. VK_SHADER_STAGE_FRAGMENT_BIT：`Fragment`片元/像素着色器
+3. VK_SHADER_STAGE_GEOMETRY_BIT：`Geometry`几何着色器
+4. VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT：`Tessellation Control`决定曲面细分程度
+5. VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT：`Tessellation Evaluation`计算细分后产生顶点的位置
+6. VK_SHADER_STAGE_COMPUTE_BIT：`Compute`计算着色器

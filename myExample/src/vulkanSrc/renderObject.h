@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <map>
+#include <span>
 
 class GGeometry;
 class RenderObjectManager;
@@ -73,4 +74,7 @@ class RenderObjectManager {
 		}
 
 		uint32_t getRenderObjCount() { return static_cast<uint32_t>(vec_pRenderObj.size()); }
+
+		// 此处使用 span 视图
+		std::span<const RenderObject * const> getVecRenderObjectAll() { return vec_pRenderObj; }
 };

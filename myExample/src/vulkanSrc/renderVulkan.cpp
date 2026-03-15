@@ -1,7 +1,11 @@
 #include "renderVulkan.h"
 #include "renderObject.h"
 
+#include "stb_image.h"
+
+#include <atomic>
 #include <cstdint>
+#include <execution>
 #include <fstream>
 
 bool RenderVulkan::init() {
@@ -44,6 +48,9 @@ bool RenderVulkan::prepare() {
 		return false;
 
 	if (!createIndirectBufferRes())
+		return false;
+
+	if (!createNormalMapSample())
 		return false;
 
 	// Descriptor 资源
@@ -269,6 +276,210 @@ bool RenderVulkan::allocateBuffer(const uint32_t bufferSize,
 	return true;
 }
 
+void RenderVulkan::transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image,
+										 VkImageLayout oldLayout, VkImageLayout newLayout,
+										 uint32_t srcQueueFamilyIndex,
+										 uint32_t dstQueueFamilyIndex) {
+	VkImageMemoryBarrier barrier{};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout = oldLayout;
+	barrier.newLayout = newLayout;
+
+	barrier.srcQueueFamilyIndex = srcQueueFamilyIndex;
+	barrier.dstQueueFamilyIndex = dstQueueFamilyIndex;
+
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags sourceStage;
+	VkPipelineStageFlags destinationStage;
+
+	// 不同的同步节点
+	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+		newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+	} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+			   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+
+		// 如果发生了所有权转移（src != dst）
+		if (srcQueueFamilyIndex != dstQueueFamilyIndex) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		} else {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		}
+
+		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+
+	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
+						 &barrier);
+}
+
+bool RenderVulkan::createNormalMapSample() {
+	// 加载法线贴图数据
+	int texWidth{0}, texHeight{0}, texChannels{0};
+	BufferRes stagingBuffer;
+	{
+		stbi_uc * pixels = stbi_load((std::string(SADERPATH) + "triangle/NormalMap.png").c_str(),
+									 &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+		if (!allocateBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+							VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+								VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+							stagingBuffer.m_Buffer, stagingBuffer.m_Memory))
+			return false;
+
+		// 拷贝
+		void * data;
+		vkMapMemory(m_LogicalDevice, stagingBuffer.m_Memory, 0, imageSize, 0, &data);
+		memcpy(data, pixels, static_cast<size_t>(imageSize));
+		vkUnmapMemory(m_LogicalDevice, stagingBuffer.m_Memory);
+
+		// 释放资源
+		stbi_image_free(pixels);
+	}
+
+	VkImageCreateInfo imageInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_UNORM, // 法线贴图的标准格式
+		.extent =
+			{
+				.width = static_cast<uint32_t>(texWidth),
+				.height = static_cast<uint32_t>(texHeight),
+				.depth = 1,
+			},
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL, // GPU 内部最优排布，CPU 不可读
+		.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		// 独占模式
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+
+	CHECK_VK_RESULT(
+		vkCreateImage(m_LogicalDevice, &imageInfo, nullptr, &m_NormalMapImageRes.m_Image));
+
+	VkMemoryRequirements memReqs{};
+	vkGetImageMemoryRequirements(m_LogicalDevice, m_NormalMapImageRes.m_Image, &memReqs);
+
+	VkMemoryAllocateInfo memAllloc{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memReqs.size,
+		.memoryTypeIndex = getMemoryTypeIndex(m_MemoryProperty, memReqs.memoryTypeBits,
+											  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+	};
+
+	if ((vkAllocateMemory(m_LogicalDevice, &memAllloc, nullptr, &m_NormalMapImageRes.m_Memory) !=
+		 VK_SUCCESS) ||
+		(vkBindImageMemory(m_LogicalDevice, m_NormalMapImageRes.m_Image,
+						   m_NormalMapImageRes.m_Memory, 0) != VK_SUCCESS))
+		return false;
+
+	// cmd 操作
+	{
+		VkCommandBuffer cmd = getCmdBuffer(m_QueueIndex.m_Graphics);
+		VkCommandBufferBeginInfo cmdBufferBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+		};
+		CHECK_VK_RESULT(vkBeginCommandBuffer(cmd, &cmdBufferBeginInfo));
+
+		transitionImageLayout(cmd, m_NormalMapImageRes.m_Image, VK_IMAGE_LAYOUT_UNDEFINED,
+							  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.imageSubresource =
+				{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = 0,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+				},
+			.imageOffset =
+				{
+					0,
+					0,
+					0,
+				},
+			.imageExtent =
+				{
+					(uint32_t)texWidth,
+					(uint32_t)texHeight,
+					1,
+				},
+		};
+
+		vkCmdCopyBufferToImage(cmd, stagingBuffer.m_Buffer, m_NormalMapImageRes.m_Image,
+							   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+		transitionImageLayout(cmd, m_NormalMapImageRes.m_Image,
+							  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+							  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
+
+		VkSubmitInfo submitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &cmd,
+		};
+
+		vkQueueSubmit(map_QIndex2Queue[m_QueueIndex.m_Graphics], 1, &submitInfo, VK_NULL_HANDLE);
+
+		vkQueueWaitIdle(map_QIndex2Queue[m_QueueIndex.m_Graphics]);
+
+		// 资源释放
+		freeCommandBuffer(m_QueueIndex.m_Graphics, cmd);
+	}
+
+	// 资源释放
+	vkDestroyBuffer(m_LogicalDevice, stagingBuffer.m_Buffer, nullptr);
+	vkFreeMemory(m_LogicalDevice, stagingBuffer.m_Memory, nullptr);
+
+	VkImageViewCreateInfo viewInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = m_NormalMapImageRes.m_Image,
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_UNORM,
+		.subresourceRange =
+			{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+	};
+
+	vkCreateImageView(m_LogicalDevice, &viewInfo, nullptr, &m_NormalMapImageRes.m_ImageView);
+
+	VkSamplerCreateInfo samplerInfo{
+		.magFilter = VK_FILTER_LINEAR, // 线性过滤
+		.minFilter = VK_FILTER_LINEAR,
+		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT, // 法线贴图通常需要重复平铺
+	};
+
+	vkCreateSampler(m_LogicalDevice, &samplerInfo, nullptr, &m_NormalMapSample);
+
+	return m_NormalMapSample != VK_NULL_HANDLE;
+}
+
 bool RenderVulkan::createUniformBufferRes() {
 	VkMemoryAllocateInfo allocInfo{
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -385,18 +596,28 @@ bool RenderVulkan::createIndirectBufferRes() {
 }
 
 bool RenderVulkan::createDescriptorSetLayout() {
-	VkDescriptorSetLayoutBinding layoutBinding{
-		.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		.descriptorCount = 1,
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.pImmutableSamplers = nullptr,
+	std::vector<VkDescriptorSetLayoutBinding> vec_DescriptorSetLayout{
+		{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+			.pImmutableSamplers = nullptr,
+		},
+		{
+			.binding = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr,
+		},
 	};
 
 	VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		.pNext = nullptr,
-		.bindingCount = 1,
-		.pBindings = &layoutBinding,
+		.bindingCount = static_cast<uint32_t>(vec_DescriptorSetLayout.size()),
+		.pBindings = vec_DescriptorSetLayout.data(),
 	};
 
 	CHECK_VK_RESULT(vkCreateDescriptorSetLayout(m_LogicalDevice, &descriptorLayoutCI, nullptr,
@@ -406,15 +627,21 @@ bool RenderVulkan::createDescriptorSetLayout() {
 }
 
 bool RenderVulkan::createDescriptorPool() {
-	VkDescriptorPoolSize descriptorTypeCounts[1]{};
-	descriptorTypeCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorTypeCounts[0].descriptorCount = m_MaxConcurrentFrames;
+	VkDescriptorPoolSize descriptorTypeCounts[2];
+	descriptorTypeCounts[0] = {
+		.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		.descriptorCount = m_MaxConcurrentFrames,
+	};
+	descriptorTypeCounts[1] = {
+		.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		.descriptorCount = m_MaxConcurrentFrames,
+	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCI{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		.pNext = nullptr,
 		.maxSets = m_MaxConcurrentFrames,
-		.poolSizeCount = 1,
+		.poolSizeCount = 2,
 		.pPoolSizes = descriptorTypeCounts,
 	};
 
@@ -425,7 +652,6 @@ bool RenderVulkan::createDescriptorPool() {
 }
 
 bool RenderVulkan::createDescriptorSets() {
-
 	for (uint32_t i = 0; i < m_MaxConcurrentFrames; i++) {
 		VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -437,13 +663,15 @@ bool RenderVulkan::createDescriptorSets() {
 		CHECK_VK_RESULT(vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo,
 												 &vec_UniformRes[i].m_DescriptorSet));
 
+		VkWriteDescriptorSet descriptorWrites[2];
+
+		// UBO
 		VkDescriptorBufferInfo bufferInfo{
 			.buffer = vec_UniformRes[i].m_BufferRes.m_Buffer,
 			.offset = 0,
 			.range = sizeof(ShaderData),
 		};
-
-		VkWriteDescriptorSet writeDescriptorSet{
+		descriptorWrites[0] = {
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = vec_UniformRes[i].m_DescriptorSet,
 			.dstBinding = 0,
@@ -452,7 +680,23 @@ bool RenderVulkan::createDescriptorSets() {
 			.pBufferInfo = &bufferInfo,
 		};
 
-		vkUpdateDescriptorSets(m_LogicalDevice, 1, &writeDescriptorSet, 0, nullptr);
+		// NormalMap
+		VkDescriptorImageInfo imageInfo{
+			.sampler = m_NormalMapSample,
+			.imageView = m_NormalMapImageRes.m_ImageView,
+			.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		};
+		descriptorWrites[1] = {
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = vec_UniformRes[i].m_DescriptorSet,
+			.dstBinding = 1,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.pImageInfo = &imageInfo,
+		};
+
+		vkUpdateDescriptorSets(m_LogicalDevice, 2, descriptorWrites, 0, nullptr);
 	}
 
 	return true;
@@ -547,6 +791,7 @@ bool RenderVulkan::createPipeline() {
 		.pSampleMask = nullptr,
 	};
 
+	// 绑定顶点数据的步长
 	VkVertexInputBindingDescription vertexInputBinding{
 		.binding = 0,
 		.stride = sizeof(Vertex),
@@ -746,28 +991,28 @@ bool RenderVulkan::renderNext() {
 	memcpy(vec_UniformRes[m_CurrentFrameIndex].m_PMapped, &shaderData, sizeof(ShaderData));
 
 	// 批量绘制
-	std::vector<VkDrawIndexedIndirectCommand> vec_IndirectInfo;
-	uint32_t drawCount{0};
+	// 直接对 map 的内存进行写入
+	VkDrawIndexedIndirectCommand * pDest =
+		static_cast<VkDrawIndexedIndirectCommand *>(vec_IndirectRes[m_CurrentFrameIndex].m_PMapped);
+	std::atomic<uint32_t> drawCount{0};
 	{
-		const auto & vec_pRenderObj = RenderObjectManager::getInstance().getVecRenderObj(
-			[this](const GPoint & pt) -> bool { return m_pCamera->isPtIn(pt); });
-		vec_IndirectInfo.reserve(vec_pRenderObj.size());
-		drawCount = vec_pRenderObj.size();
+		const auto & vec_pRenderObjAll = RenderObjectManager::getInstance().getVecRenderObjectAll();
 
-		for (const auto & pRenderObj : vec_pRenderObj) {
-			vec_IndirectInfo.emplace_back(VkDrawIndexedIndirectCommand{
-				.indexCount = pRenderObj->getIndexCount(),
-				.instanceCount = 1,
-				.firstIndex = pRenderObj->getIndexOffset(),
-				.vertexOffset = static_cast<int32_t>(pRenderObj->getVertexOffset()),
-			});
-		}
+		std::for_each(std::execution::par_unseq, vec_pRenderObjAll.begin(), vec_pRenderObjAll.end(),
+					  [&](const RenderObject * const pRenderObj) {
+						  if (m_pCamera->isPtIn(pRenderObj->getFeaturePt())) {
+							  const auto & writeIndex =
+								  drawCount.fetch_add(1, std::memory_order_relaxed);
+
+							  pDest[writeIndex].indexCount = pRenderObj->getIndexCount();
+							  pDest[writeIndex].instanceCount = 1;
+							  pDest[writeIndex].firstIndex = pRenderObj->getIndexOffset();
+							  pDest[writeIndex].vertexOffset =
+								  static_cast<int32_t>(pRenderObj->getVertexOffset());
+							  pDest[writeIndex].firstInstance = 0;
+						  }
+					  });
 	}
-
-	auto & currentIndirectBuffer = vec_IndirectRes[m_CurrentFrameIndex];
-
-	memcpy(currentIndirectBuffer.m_PMapped, vec_IndirectInfo.data(),
-		   sizeof(VkDrawIndexedIndirectCommand) * drawCount);
 
 	//
 	const auto & currentCmdBuffer = getFrameCmdBuffer(m_CurrentFrameIndex);
@@ -837,7 +1082,7 @@ bool RenderVulkan::renderNext() {
 
 	vkCmdDrawIndexedIndirect(currentCmdBuffer,
 							 vec_IndirectRes[m_CurrentFrameIndex].m_BufferRes.m_Buffer, 0,
-							 drawCount, sizeof(VkDrawIndexedIndirectCommand));
+							 drawCount.load(), sizeof(VkDrawIndexedIndirectCommand));
 
 	// 一次性绘制测试
 	/* vkCmdDrawIndexedIndirect(currentCmdBuffer,

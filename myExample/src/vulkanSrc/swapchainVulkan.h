@@ -44,7 +44,7 @@ class SwapchainVulkan {
 
 		std::vector<VkImageView> vec_ImageView;
 
-		DepthStencilRes m_DepthStencilRes;
+		VkImageRes m_DepthStencilRes;
 
 		VkSurfaceFormatKHR m_SurfaceFormat;
 

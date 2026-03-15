@@ -42,6 +42,8 @@ class Camera {
 
 		static inline const glm::dvec3 worldUp{0.0, 0.0, 1.0};
 
+		static inline const double debugRatio{0.7};
+
 		// 外部传入
 		double zNear{0.0};
 		double zFar{0.0};
@@ -139,7 +141,7 @@ class Camera {
 
 			camForward = glm::normalize(ptTarg - ptPos);
 			camRight = glm::normalize(glm::cross(camForward, worldUp));
-			camUp = glm::cross(camRight, camForward);
+			camUp = glm::normalize(glm::cross(camRight, camForward));
 
 			updated = true;
 		}
@@ -192,31 +194,16 @@ class Camera {
 		bool isPtIn(const GPoint & ptSrc) {
 			// return true;
 
-			GVector vecForward{camForward};
-			vecForward.normalize();
-
-			GPoint ptStart{ptPos};
-			GPoint ptEnd{ptPos};
-
-			ptStart += vecForward * zNear;
-			ptEnd += vecForward * zFar;
-
-			GLineSeg lineSegViewSpace{ptStart, ptEnd};
-			const auto & lineSegLength = zFar - zNear;
-
-			const auto & ptClosest = lineSegViewSpace.getClosestPt(ptSrc);
-			const auto & vecPt = ptSrc - ptClosest;
-
-			const double debugRatio = 0.7;
+			const auto & vecPt = (ptSrc - ptPos);
 
 			if ((compareDouble(std::abs(vecPt.dot(GVector(camRight))),
 							   viewSize * aspect * debugRatio) > 0) ||
 				(compareDouble(std::abs(vecPt.dot(GVector(camUp))), viewSize * debugRatio) > 0))
 				return false;
 
-			const auto & ptDis = ptClosest.distanceTo(ptStart);
+			const auto & ptDis = vecPt.dot(camForward);
 
-			if ((compareDouble(ptDis, lineSegLength) > 0) || compareDouble(ptDis, 0) < 0)
+			if ((compareDouble(ptDis, zFar) > 0) || compareDouble(ptDis, zNear) < 0)
 				return false;
 
 			return true;
