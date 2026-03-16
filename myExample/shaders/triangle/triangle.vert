@@ -34,14 +34,22 @@ void main()
 	gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(inPos.xyz, 1.0);
 
 	// 法线贴图部分
-	outTangent = normalize(cross(inNormal, vec3(0.0, 0.0, 1.0)));
+	// 此处不能直接单位化，存在0/0风险
+	outTangent = cross(inNormal, vec3(0.0, 0.0, 1.0));
 	// 点乘判空优化效率
 	if (dot(outTangent, outTangent) < 0.001)
 		outTangent = vec3(1.0, 0.0, 0.0);
 
+	outTangent = normalize(outTangent);
+
 	outTangent = modelMatrix * outTangent;
 	
-	vec3 vecPt2Apex = normalize(inPos - inPosApex);
+	vec3 vecPt2Apex = inPos - inPosApex;
+	if (dot(vecPt2Apex, vecPt2Apex) < 0.001)
+		vecPt2Apex = vec3(0.0, 0.0, 0.0);
+	else
+		vecPt2Apex = normalize(vecPt2Apex);
+
 	vecPt2Apex = vecPt2Apex * 0.5 * inHeightRatio + vec3(0.5, 0.5, 0);
 	outUV = vecPt2Apex.xy;
 }
