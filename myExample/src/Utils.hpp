@@ -27,6 +27,10 @@ struct /* alignas(16) */ Vertex {
 		/* alignas(16) */ glm::vec3 pos;
 		glm::vec3 normal;
 		glm::vec3 color;
+
+		glm::vec3 posApex;
+		// 距离中心点高度比例
+		glm::float32 heightRatio;
 };
 
 struct VertexInfo {

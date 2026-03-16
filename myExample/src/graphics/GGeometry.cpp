@@ -80,6 +80,8 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_BtmH}.to_GlmVec3(),
 				.normal = vecBtmNormal,
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = 0.0,
 			});
 
 			const uint32_t & idxBtmCenterVert =
@@ -108,6 +110,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecVertNormal.to_GlmVec3(),
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 1.0,
 					});
 					const uint32_t & idxVertCurr =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -117,6 +121,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecBtmNormal,
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 1.0,
 					});
 					const uint32_t & idxVertCurrBtm =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -137,6 +143,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = m_PtApex.to_GlmVec3(),
 						.normal = (vecVertPre + vecVertNormal).normalize().to_GlmVec3(),
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 0.0,
 					});
 					const uint32_t & idxVertCurrApex =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -161,6 +169,8 @@ VertexInfo GCone::getVertex() const noexcept {
 					.pos = m_PtApex.to_GlmVec3(),
 					.normal = (vecVertPre + vecVertFst).to_GlmVec3(),
 					.color = color,
+					.posApex = m_PtApex.to_GlmVec3(),
+					.heightRatio = 0.0,
 				});
 
 				vertInfo.vec_Index.emplace_back(idxVertPre);
@@ -182,6 +192,8 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_TopH}.to_GlmVec3(),
 				.normal = vecTopNormal,
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = 0.0,
 			});
 
 			const uint32_t & idxTopCenterVert =
@@ -210,6 +222,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecVertNormal.to_GlmVec3(),
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 1.0,
 					});
 					const uint32_t & idxVertCurr =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -219,6 +233,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = ptCurr.to_GlmVec3(),
 						.normal = vecTopNormal,
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 1.0,
 					});
 					const uint32_t & idxVertCurrTop =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -239,6 +255,8 @@ VertexInfo GCone::getVertex() const noexcept {
 						.pos = m_PtApex.to_GlmVec3(),
 						.normal = (vecVertPre + vecVertNormal).normalize().to_GlmVec3(),
 						.color = color,
+						.posApex = m_PtApex.to_GlmVec3(),
+						.heightRatio = 0.0,
 					});
 					const uint32_t & idxVertCurrApex =
 						static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -263,6 +281,8 @@ VertexInfo GCone::getVertex() const noexcept {
 					.pos = m_PtApex.to_GlmVec3(),
 					.normal = (vecVertPre + vecVertFst).to_GlmVec3(),
 					.color = color,
+					.posApex = m_PtApex.to_GlmVec3(),
+					.heightRatio = 0.0,
 				});
 
 				vertInfo.vec_Index.emplace_back(idxVertFst.value());
@@ -319,6 +339,8 @@ VertexInfo GCone::getVertex() const noexcept {
 			.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_TopH}.to_GlmVec3(),
 			.normal = vecTopNormal,
 			.color = color,
+			.posApex = m_PtApex.to_GlmVec3(),
+			.heightRatio = 0.0,
 		});
 		const uint32_t & idxTopCenterVert = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
@@ -326,6 +348,8 @@ VertexInfo GCone::getVertex() const noexcept {
 			.pos = GPoint{m_PtApex.position.x, m_PtApex.position.y, m_BtmH}.to_GlmVec3(),
 			.normal = vecBtmNormal,
 			.color = color,
+			.posApex = m_PtApex.to_GlmVec3(),
+			.heightRatio = 0.0,
 		});
 		const uint32_t & idxBtmCenterVert = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
@@ -339,6 +363,10 @@ VertexInfo GCone::getVertex() const noexcept {
 		uint32_t idxVertPreTop{0};
 		uint32_t idxVertPreBtm{0};
 
+		// 基础数据类型不要使用引用
+		const auto zDis = std::max(std::abs(m_TopH - m_PtApex.to_GlmVec3().z),
+								   std::abs(m_BtmH - m_PtApex.to_GlmVec3().z));
+
 		for (size_t i = 0; i < vec_Pt2VecTop.size(); ++i) {
 			const auto & ptCurrTop = vec_Pt2VecTop[i].first;
 			const auto & ptCurrBtm = vec_Pt2VecBtm[i].first;
@@ -349,6 +377,9 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = ptCurrTop.to_GlmVec3(),
 				.normal = vecCurrTop.to_GlmVec3(),
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = static_cast<float>(
+					std::abs((ptCurrTop.to_GlmVec3().z - m_PtApex.position.z) / zDis)),
 			});
 			const uint32_t & idxVertCurrTopSide =
 				static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -357,6 +388,9 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = ptCurrBtm.to_GlmVec3(),
 				.normal = vecCurrBtm.to_GlmVec3(),
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = static_cast<float>(
+					std::abs((ptCurrBtm.to_GlmVec3().z - m_PtApex.position.z) / zDis)),
 			});
 			const uint32_t & idxVertCurrBtmSide =
 				static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
@@ -365,6 +399,9 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = ptCurrTop.to_GlmVec3(),
 				.normal = vecTopNormal,
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = static_cast<float>(
+					std::abs((ptCurrTop.to_GlmVec3().z - m_PtApex.position.z) / zDis)),
 			});
 			const uint32_t & idxVertCurrTop = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 
@@ -372,6 +409,9 @@ VertexInfo GCone::getVertex() const noexcept {
 				.pos = ptCurrBtm.to_GlmVec3(),
 				.normal = vecBtmNormal,
 				.color = color,
+				.posApex = m_PtApex.to_GlmVec3(),
+				.heightRatio = static_cast<float>(
+					std::abs((ptCurrBtm.to_GlmVec3().z - m_PtApex.position.z) / zDis)),
 			});
 			const uint32_t & idxVertCurrBtm = static_cast<uint32_t>(vertInfo.vec_Vertex.size() - 1);
 

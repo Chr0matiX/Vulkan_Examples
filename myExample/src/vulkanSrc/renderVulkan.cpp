@@ -1,6 +1,7 @@
 #include "renderVulkan.h"
 #include "renderObject.h"
 
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <atomic>
@@ -818,6 +819,18 @@ bool RenderVulkan::createPipeline() {
 			.binding = 0,
 			.format = VK_FORMAT_R32G32B32_SFLOAT,
 			.offset = offsetof(Vertex, color),
+		},
+		{
+			.location = 3,
+			.binding = 0,
+			.format = VK_FORMAT_R32G32B32_SFLOAT,
+			.offset = offsetof(Vertex, posApex),
+		},
+		{
+			.location = 4,
+			.binding = 0,
+			.format = VK_FORMAT_R32_SFLOAT,
+			.offset = offsetof(Vertex, heightRatio),
 		},
 	};
 
