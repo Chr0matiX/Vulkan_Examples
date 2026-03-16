@@ -6,21 +6,21 @@
 
 int main() {
 	// test
-	{
-		/* RenderObjectManager::getInstance().addRenderObject(new RenderObject(new GCone(
+	/* {
+		RenderObjectManager::getInstance().addRenderObject(new RenderObject(new GCone(
 			{3000.0, 3000.0, 1000.0 / std::tan(glm::radians(45.0))}, 1000.0, 500.0, -45)));
 
 		RenderObjectManager::getInstance().addRenderObject(
 			new RenderObject(new GCone({0.0, 0.0, 0.0}, 1000.0, 600.0, 30)));
- */
+
 		RenderObjectManager::getInstance().addRenderObject(
 			new RenderObject(new GCone({3000.0, 0.0, 0.0}, 1000.0, 1000.0, 45)));
 
-		/* RenderObjectManager::getInstance().addRenderObject(
+		RenderObjectManager::getInstance().addRenderObject(
 			new RenderObject(new GCone({0.0, 3000.0, 0.0}, 1000.0, 3000.0, 30)));
- */	}
+	} */
 
-	/* // 随机数据生成
+	// 随机数据生成
 	// 固定种子
 	std::default_random_engine rSeed(12345);
 	const double stepSize = 3000.0;
@@ -191,7 +191,7 @@ int main() {
 							  radius, height, halfAngle)));
 			}
 		}
-	} */
+	}
 
 	const auto & vertexInfoMerg = RenderObjectManager::getInstance().getVertexInfo();
 
