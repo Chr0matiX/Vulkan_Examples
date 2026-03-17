@@ -23,7 +23,16 @@ int main() {
 	// 随机数据生成
 	// 固定种子
 	std::default_random_engine rSeed(12345);
-	const double stepSize = 3000.0;
+	const double stepSize = 5000.0;
+	const uint32_t rowCount = 50;
+	const uint32_t colCount = 50;
+	const uint32_t testLayoutCount = static_cast<uint32_t>((rowCount + colCount) / 2.0 * 0.4);
+
+	const double offsetRatio = 0.5;
+	std::uniform_int_distribution<int> xyDistribution(-stepSize * offsetRatio,
+													  stepSize * offsetRatio);
+	std::uniform_int_distribution<int> zDistribution(-stepSize * offsetRatio * 2,
+													 stepSize * offsetRatio * 2);
 
 	double zOffset = 0;
 
@@ -33,15 +42,20 @@ int main() {
 		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
 		std::uniform_int_distribution<int> rSigns(0, 1);
 
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
+		for (uint32_t row = 0; row < rowCount; ++row) {
+			for (uint32_t col = 0; col < colCount; ++col) {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle)));
 
+				const auto & xRandomOffset = xyDistribution(rSeed);
+				const auto & yRandomOffset = xyDistribution(rSeed);
+				const auto & zRandomOffset = zDistribution(rSeed);
+
 				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+					new GCone({col * stepSize + xRandomOffset, row * stepSize + yRandomOffset,
+							   (signs ? 0 : height) + zOffset + zRandomOffset},
 							  radius, height, halfAngle)));
 			}
 		}
@@ -54,15 +68,20 @@ int main() {
 		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
 		std::uniform_int_distribution<int> rSigns(0, 1);
 
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
+		for (uint32_t row = 0; row < rowCount; ++row) {
+			for (uint32_t col = 0; col < colCount; ++col) {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
+				const auto & xRandomOffset = xyDistribution(rSeed);
+				const auto & yRandomOffset = xyDistribution(rSeed);
+				const auto & zRandomOffset = zDistribution(rSeed);
+
 				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+					new GCone({col * stepSize + xRandomOffset, row * stepSize + yRandomOffset,
+							   (signs ? 0 : height) + zOffset + zRandomOffset},
 							  radius, height, halfAngle)));
 			}
 		}
@@ -75,15 +94,20 @@ int main() {
 		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
 		std::uniform_int_distribution<int> rSigns(0, 1);
 
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
+		for (uint32_t row = 0; row < rowCount; ++row) {
+			for (uint32_t col = 0; col < colCount; ++col) {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) * 2;
 
+				const auto & xRandomOffset = xyDistribution(rSeed);
+				const auto & yRandomOffset = xyDistribution(rSeed);
+				const auto & zRandomOffset = zDistribution(rSeed);
+
 				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+					new GCone({col * stepSize + xRandomOffset, row * stepSize + yRandomOffset,
+							   (signs ? 0 : height) + zOffset + zRandomOffset},
 							  radius, height, halfAngle)));
 			}
 		}
@@ -97,101 +121,51 @@ int main() {
 		std::uniform_real_distribution<double> rHeight(1000.0, 3000.0);
 		std::uniform_int_distribution<int> rSigns(0, 1);
 
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
+		for (uint32_t row = 0; row < rowCount; ++row) {
+			for (uint32_t col = 0; col < colCount; ++col) {
 				const auto & signs = rSigns(rSeed);
 
-				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, 0 + zOffset}, rRadius(rSeed),
-							  rHeight(rSeed), rHalfAngle(rSeed) * (signs ? 1 : -1))));
+				const auto & xRandomOffset = xyDistribution(rSeed);
+				const auto & yRandomOffset = xyDistribution(rSeed);
+				const auto & zRandomOffset = zDistribution(rSeed);
+
+				RenderObjectManager::getInstance().addRenderObject(new RenderObject(new GCone(
+					{col * stepSize + xRandomOffset, row * stepSize + yRandomOffset,
+					 0 + zOffset + zRandomOffset},
+					rRadius(rSeed), rHeight(rSeed), rHalfAngle(rSeed) * (signs ? 1 : -1))));
 			}
 		}
 	}
 	// test
-	// 圆台
-	{
+	for (uint32_t layout = 0; layout < testLayoutCount; ++layout) {
+		// 圆台
 		zOffset += stepSize * 2;
 
 		std::uniform_real_distribution<double> rRadius(1000.0, 2000.0);
 		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
 		std::uniform_int_distribution<int> rSigns(0, 1);
 
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
+		for (uint32_t row = 0; row < rowCount; ++row) {
+			for (uint32_t col = 0; col < colCount; ++col) {
 				const auto & signs = rSigns(rSeed);
 				const auto & radius = rRadius(rSeed);
 				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
 				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
 
+				const auto & xRandomOffset = xyDistribution(rSeed);
+				const auto & yRandomOffset = xyDistribution(rSeed);
+				const auto & zRandomOffset = zDistribution(rSeed);
+
 				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
+					new GCone({col * stepSize + xRandomOffset, row * stepSize + yRandomOffset,
+							   (signs ? 0 : height) + zOffset + zRandomOffset},
 							  radius, height, halfAngle)));
 			}
 		}
 	}
-	// 圆台
-	{
-		zOffset += stepSize * 2;
 
-		std::uniform_real_distribution<double> rRadius(1000.0, 2000.0);
-		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
-		std::uniform_int_distribution<int> rSigns(0, 1);
-
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
-				const auto & signs = rSigns(rSeed);
-				const auto & radius = rRadius(rSeed);
-				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
-
-				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
-							  radius, height, halfAngle)));
-			}
-		}
-	}
-	// 圆台
-	{
-		zOffset += stepSize * 2;
-
-		std::uniform_real_distribution<double> rRadius(1000.0, 2000.0);
-		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
-		std::uniform_int_distribution<int> rSigns(0, 1);
-
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
-				const auto & signs = rSigns(rSeed);
-				const auto & radius = rRadius(rSeed);
-				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
-
-				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
-							  radius, height, halfAngle)));
-			}
-		}
-	}
-	// 圆台
-	{
-		zOffset += stepSize * 2;
-
-		std::uniform_real_distribution<double> rRadius(1000.0, 2000.0);
-		std::uniform_real_distribution<double> rHalfAngle(20.0, 70.0);
-		std::uniform_int_distribution<int> rSigns(0, 1);
-
-		for (uint32_t row = 0; row < 100; ++row) {
-			for (uint32_t col = 0; col < 100; ++col) {
-				const auto & signs = rSigns(rSeed);
-				const auto & radius = rRadius(rSeed);
-				const auto & halfAngle = rHalfAngle(rSeed) * (signs ? 1 : -1);
-				const auto & height = std::abs(radius / std::tan(glm::radians(halfAngle))) / 2;
-
-				RenderObjectManager::getInstance().addRenderObject(new RenderObject(
-					new GCone({col * stepSize, row * stepSize, (signs ? 0 : height) + zOffset},
-							  radius, height, halfAngle)));
-			}
-		}
-	}
+	std::cout << "RenderObjCount: " << RenderObjectManager::getInstance().getRenderObjCount()
+			  << std::endl;
 
 	const auto & vertexInfoMerg = RenderObjectManager::getInstance().getVertexInfo();
 
