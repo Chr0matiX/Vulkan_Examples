@@ -14,4 +14,5 @@ bool AABB::isPtIn(const GPoint & pt, const double tol) {
 }
 
 bool AABB::isIntersect(const AABB & othAABB) {
+	return 
 }
